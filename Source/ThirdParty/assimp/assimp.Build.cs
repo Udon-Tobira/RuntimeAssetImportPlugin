@@ -19,7 +19,7 @@ public class assimp : ModuleRules
             PublicDelayLoadDLLs.Add(Path.Combine(ModuleDirectory, "assimp", "bin", "Release", "assimp-vc143-mt.dll"));
 
             // Ensure that the DLL is staged along with the executable
-            RuntimeDependencies.Add("$(PluginDir)/Binaries/ThirdParty/AssimpLibrary/Win64/assimp-vc143-mt.dll");
+            RuntimeDependencies.Add("$(BinaryOutputDir)/assimp-vc143-mt.dll", Path.Combine(PluginDirectory, "Source/ThirdParty/assimp/assimp/bin/Release/assimp-vc143-mt.dll"));
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
