@@ -1,6 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+using System;
+using System.Diagnostics;
 using System.IO;
+using System.Text;
 using UnrealBuildTool;
 
 public class assimp : ModuleRules
@@ -8,6 +11,12 @@ public class assimp : ModuleRules
     public assimp(ReadOnlyTargetRules Target) : base(Target)
     {
         Type = ModuleType.External;
+
+        // add assimp cmake build
+        var assimpCmakePath = Path.Combine(ModuleDirectory, "assimp");
+        ExecuteConsoleCommand(assimpCmakePath, "cmake.exe CMakeLists.txt");
+        ExecuteConsoleCommand(assimpCmakePath, "cmake.exe --build . --config Release");
+
         PublicSystemIncludePaths.Add(Path.Combine(ModuleDirectory, "assimp", "include"));
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
@@ -41,6 +50,30 @@ public class assimp : ModuleRules
             PublicAdditionalLibraries.Add(LibAssimpSoPath);
             PublicDelayLoadDLLs.Add(LibAssimpSoPath);
             RuntimeDependencies.Add(LibAssimpSoPath);
+        }
+    }
+    private static void ExecuteConsoleCommand(string workingDirectory, string command)
+    {
+        var processInfo = new ProcessStartInfo("cmd.exe", "/c " + command)
+        {
+            CreateNoWindow = true,
+            UseShellExecute = false,
+            RedirectStandardError = true,
+            RedirectStandardOutput = true,
+            WorkingDirectory = workingDirectory
+        };
+        StringBuilder outputString = new StringBuilder();
+        Process process = Process.Start(processInfo);
+
+        process.OutputDataReceived += (sender, args) => { outputString.Append(args.Data); Console.WriteLine(args.Data); };
+        process.ErrorDataReceived += (sender, args) => { outputString.Append(args.Data); Console.WriteLine(args.Data); };
+        process.BeginOutputReadLine();
+        process.BeginErrorReadLine();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            Console.WriteLine(outputString);
         }
     }
 }
