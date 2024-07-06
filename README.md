@@ -32,6 +32,9 @@ Clone this repository with its submodules into the Plugins folder (or create you
 
 After installing the plugin using one of the above procedures, open the project (Press Yes when you see "The following modules are missing or built with a different engine version: RuntimeAssetImport") and the plugin is enabled.
 
+## How to use
+Run [Runtime Asset Import Sample](https://github.com/Udon-Tobira/RuntimeAssImpSample).
+
 ## Description of the technology inside
 We are using assimp as a git submodule, CMake is only needed to build assimp. The actual loading of the asset files is done by assimp, and this plugin only converts them from the format loaded by assimp to a format usable by the Unreal Engine. The build of assimp is done automatically during the project build process. Currently, only Windows is supported.
 
