@@ -14,6 +14,11 @@
 	"IsBetaVersion": false,
 	"IsExperimentalVersion": false,
 	"Installed": false,
+	"PreBuildSteps": {
+		"Win64": [
+			"$(PluginDir)\\PreBuild.bat"
+		]
+	},
 	"Modules": [
 		{
 			"Name": "RuntimeAssetImport",
