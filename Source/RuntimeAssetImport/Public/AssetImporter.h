@@ -19,17 +19,18 @@ public:
 	/**
 	 * Construct structured Procedural Mesh Component from the specified asset
 	 * file. The file format must be one supported by assimp.
-	 * @param   FilePath                    Path to the asset file
+	 * @param   FilePath                    Path to the asset file.
 	 * @param   ParentMaterialInterface     The base material interface used to
 	 *                                      create materials for the imported
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned procedural mesh
-	 *                                      component and its descendant
-	 * components
+	 *                                      component and its descendant.
+	 * @param   ShouldReplicate             Whether the component should be
+	 *                                      replicated or not.
 	 */
 	UFUNCTION(BlueprintCallable)
 	static UProceduralMeshComponent*
 	    ConstructProceduralMeshComponentFromAssetFile(
 	        const FString& FilePath, UMaterialInterface* ParentMaterialInterface,
-	        AActor* Owner);
+	        AActor* Owner, bool ShouldReplicate = true);
 };

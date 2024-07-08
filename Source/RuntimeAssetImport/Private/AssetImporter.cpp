@@ -25,17 +25,20 @@ static void
 
 /**
  * Construct ProceduralMeshComponent tree recursively from the AiNode
- * @param   AiScene             assimp's scene object
- * @param   AiNode              assimp's node object to start treeing
+ * @param   AiScene             assimp's scene object.
+ * @param   AiNode              assimp's node object to start treeing.
  * @param   MaterialInstances   Material Instances. You need to create material
  *                              from AiScene->mMaterials and pass it to this
  *                              argument.
  * @param   Owner               Owner of the returned procedural mesh
  *                              component and its descendant.
+ * @param   ShouldReplicate     Whether the component should be replicated or
+ *                              not.
  */
 static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
     const aiScene* AiScene, const aiNode* AiNode,
-    const TArray<UMaterialInstanceDynamic*>& MaterialInstances, AActor* Owner);
+    const TArray<UMaterialInstanceDynamic*>& MaterialInstances, AActor* Owner,
+    bool ShouldReplicate);
 
 /**
  * Convert assimp's matrix to UE's matrix
@@ -49,8 +52,8 @@ static FMatrix AiMatrixToUEMatrix(aiMatrix4x4 AiMatrix4x4);
 UProceduralMeshComponent*
     UAssetImporter::ConstructProceduralMeshComponentFromAssetFile(
         const FString&            FilePath,
-        UMaterialInterface* const ParentMaterialInterface,
-        AActor* const             Owner) {
+        UMaterialInterface* const ParentMaterialInterface, AActor* const Owner,
+        const bool ShouldReplicate) {
 	// check to ParentMaterialInterface is properly set
 	check(ParentMaterialInterface != nullptr);
 
@@ -277,8 +280,8 @@ UProceduralMeshComponent*
 	    }();
 
 	// construct Procedural Mesh Component Tree from Root Node
-	return ConstructProceduralMeshComponentTree(AiScene, AiRootNode,
-	                                            MaterialInstances, Owner);
+	return ConstructProceduralMeshComponentTree(
+	    AiScene, AiRootNode, MaterialInstances, Owner, ShouldReplicate);
 	return nullptr;
 }
 
@@ -304,13 +307,16 @@ static void
 static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
     const aiScene* const AiScene, const aiNode* const AiNode,
     const TArray<UMaterialInstanceDynamic*>& MaterialInstances,
-    AActor* const                            Owner) {
+    AActor* const Owner, const bool ShouldReplicate) {
 	// get node name
 	const auto& AiNodeName = AiNode->mName;
 
 	// new ProceduralMeshComponent with AiNodeName
 	const auto& ProcMeshComp =
 	    NewObject<UProceduralMeshComponent>(Owner, AiNodeName.C_Str());
+
+	// set whether Mesh should be replicated
+	ProcMeshComp->SetIsReplicated(ShouldReplicate);
 
 	// set RelativeTransform
 	const auto& AiTransformMatrix = AiNode->mTransformation;
@@ -512,7 +518,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 
 		// construct ChildProcMeshComponent
 		const auto& ChildProcMeshComponent = ConstructProceduralMeshComponentTree(
-		    AiScene, AiChildNode, MaterialInstances, Owner);
+		    AiScene, AiChildNode, MaterialInstances, Owner, ShouldReplicate);
 
 		// attach child component to ProcMeshComp
 		ChildProcMeshComponent->SetupAttachment(ProcMeshComp);
