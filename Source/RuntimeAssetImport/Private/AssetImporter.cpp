@@ -280,9 +280,15 @@ UProceduralMeshComponent*
 	    }();
 
 	// construct Procedural Mesh Component Tree from Root Node
-	return ConstructProceduralMeshComponentTree(
-	    AiScene, AiRootNode, MaterialInstances, Owner, ShouldReplicate);
-	return nullptr;
+	const auto& ProceduralMeshComponentTreeRoot =
+	    ConstructProceduralMeshComponentTree(
+	        AiScene, AiRootNode, MaterialInstances, Owner, ShouldReplicate);
+
+	// register root to owning actor (Owner) to reflect in the unreal's scene
+	ProceduralMeshComponentTreeRoot->RegisterComponent();
+
+	// return root ProceduralMeshComponent of ProceduralMeshComponentTree
+	return ProceduralMeshComponentTreeRoot;
 }
 
 #pragma region definitions of static functions
@@ -522,6 +528,9 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 
 		// attach child component to ProcMeshComp
 		ChildProcMeshComponent->SetupAttachment(ProcMeshComp);
+
+		// register component to owning actor (Owner) to reflect in the unreal's
+		// scene
 		ChildProcMeshComponent->RegisterComponent();
 	}
 
