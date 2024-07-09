@@ -34,11 +34,14 @@ static void
  *                              component and its descendant.
  * @param   ShouldReplicate     Whether the component should be replicated or
  *                              not.
+ * @param   ShouldRegisterComponentToOwner    Whether to register components to
+ *                                            Owner. Must be turned ON to be
+ *                                            reflected in the scene.
  */
 static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
     const aiScene* AiScene, const aiNode* AiNode,
     const TArray<UMaterialInstanceDynamic*>& MaterialInstances, AActor* Owner,
-    bool ShouldReplicate);
+    bool ShouldReplicate, bool ShouldRegisterComponentToOwner);
 
 /**
  * Convert assimp's matrix to UE's matrix
@@ -53,7 +56,7 @@ UProceduralMeshComponent*
     UAssetImporter::ConstructProceduralMeshComponentFromAssetFile(
         const FString&            FilePath,
         UMaterialInterface* const ParentMaterialInterface, AActor* const Owner,
-        const bool ShouldReplicate) {
+        const bool ShouldReplicate, const bool ShouldRegisterComponentToOwner) {
 	// check to ParentMaterialInterface is properly set
 	check(ParentMaterialInterface != nullptr);
 
@@ -282,10 +285,14 @@ UProceduralMeshComponent*
 	// construct Procedural Mesh Component Tree from Root Node
 	const auto& ProceduralMeshComponentTreeRoot =
 	    ConstructProceduralMeshComponentTree(
-	        AiScene, AiRootNode, MaterialInstances, Owner, ShouldReplicate);
+	        AiScene, AiRootNode, MaterialInstances, Owner, ShouldReplicate,
+	        ShouldRegisterComponentToOwner);
 
-	// register root to owning actor (Owner) to reflect in the unreal's scene
-	ProceduralMeshComponentTreeRoot->RegisterComponent();
+	// if ShouldRegisterComponentToOwner is ON
+	if (ShouldRegisterComponentToOwner) {
+		// register root to owning actor (Owner) to reflect in the unreal's scene
+		ProceduralMeshComponentTreeRoot->RegisterComponent();
+	}
 
 	// return root ProceduralMeshComponent of ProceduralMeshComponentTree
 	return ProceduralMeshComponentTreeRoot;
@@ -313,7 +320,8 @@ static void
 static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
     const aiScene* const AiScene, const aiNode* const AiNode,
     const TArray<UMaterialInstanceDynamic*>& MaterialInstances,
-    AActor* const Owner, const bool ShouldReplicate) {
+    AActor* const Owner, const bool ShouldReplicate,
+    const bool ShouldRegisterComponentToOwner) {
 	// get node name
 	const auto& AiNodeName = AiNode->mName;
 
@@ -524,14 +532,18 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 
 		// construct ChildProcMeshComponent
 		const auto& ChildProcMeshComponent = ConstructProceduralMeshComponentTree(
-		    AiScene, AiChildNode, MaterialInstances, Owner, ShouldReplicate);
+		    AiScene, AiChildNode, MaterialInstances, Owner, ShouldReplicate,
+		    ShouldRegisterComponentToOwner);
 
 		// attach child component to ProcMeshComp
 		ChildProcMeshComponent->SetupAttachment(ProcMeshComp);
 
-		// register component to owning actor (Owner) to reflect in the unreal's
-		// scene
-		ChildProcMeshComponent->RegisterComponent();
+		// if ShouldRegisterComponentToOwner is ON
+		if (ShouldRegisterComponentToOwner) {
+			// register component to owning actor (Owner) to reflect in the unreal's
+			// scene
+			ChildProcMeshComponent->RegisterComponent();
+		}
 	}
 
 	return ProcMeshComp;

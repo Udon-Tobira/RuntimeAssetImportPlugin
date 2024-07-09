@@ -27,10 +27,14 @@ public:
 	 *                                      component and its descendant.
 	 * @param   ShouldReplicate             Whether the component should be
 	 *                                      replicated or not.
+	 * @param   ShouldRegisterComponentToOwner    Whether to register components
+	 *                                            to Owner. Must be turned ON to
+	 *                                            be reflected in the scene.
 	 */
 	UFUNCTION(BlueprintCallable)
 	static UProceduralMeshComponent*
 	    ConstructProceduralMeshComponentFromAssetFile(
 	        const FString& FilePath, UMaterialInterface* ParentMaterialInterface,
-	        AActor* Owner, bool ShouldReplicate = true);
+	        AActor* Owner, bool ShouldReplicate = true,
+	        bool ShouldRegisterComponentToOwner = true);
 };
