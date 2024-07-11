@@ -393,12 +393,11 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
     const aiScene& AiScene, const aiNode& AiNode,
     const TArray<UMaterialInstanceDynamic*>& MaterialInstances, AActor& Owner,
     const bool ShouldReplicate, const bool ShouldRegisterComponentToOwner) {
-	// get node name
-	const auto& AiNodeName = AiNode.mName;
+	//// get node name
+	// const auto& AiNodeName = AiNode.mName;
 
-	// new ProceduralMeshComponent with AiNodeName
-	const auto& ProcMeshComp =
-	    NewObject<UProceduralMeshComponent>(&Owner, AiNodeName.C_Str());
+	// new ProceduralMeshComponent
+	const auto& ProcMeshComp = NewObject<UProceduralMeshComponent>(&Owner);
 
 	// set whether Mesh should be replicated
 	ProcMeshComp->SetIsReplicated(ShouldReplicate);
