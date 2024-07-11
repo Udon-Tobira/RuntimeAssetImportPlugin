@@ -50,6 +50,14 @@ public:
 	 *          ConstructProceduralMeshComponentFromAssetFileResult.
 	 *          If the result is Success, the return value is valid,
 	 *          If the result is Failure, the return value is nullptr.
+	 * @details  If you have no particular preference, use the
+	 *           ConstructDynamicMeshComponentFromAssetFile function.
+	 *           In multiplayer, when a client and server each create a mesh by
+	 *           this function (without using Replicate) and the client walks on
+	 *           it, there occurs a bug that prevents normal movement with a
+	 *           warning "LogNetPackageMap: Warning:
+	 *                    UPackageMapClient::InternalLoadObject: Unable to resolve
+	 *                    default guid from client".
 	 */
 	UFUNCTION(BlueprintCallable,
 	          meta = (ExpandEnumAsExecs =
