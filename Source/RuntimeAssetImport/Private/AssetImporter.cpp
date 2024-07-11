@@ -605,14 +605,20 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 		    AiScene, AiChildNode, MaterialInstances, Owner, ShouldReplicate,
 		    ShouldRegisterComponentToOwner);
 
-		// attach child component to ProcMeshComp
-		ChildProcMeshComponent->SetupAttachment(ProcMeshComp);
-
 		// if ShouldRegisterComponentToOwner is ON
 		if (ShouldRegisterComponentToOwner) {
+			// Setup of attachment of child component to ProcMeshComp
+			ChildProcMeshComponent->SetupAttachment(ProcMeshComp);
+
 			// register component to owning actor (Owner) to reflect in the unreal's
 			// scene
 			ChildProcMeshComponent->RegisterComponent();
+		}
+		// if ShouldRegisterComponentToOwner is OFF
+		else {
+			// attach child component to ProcMeshComp
+			ChildProcMeshComponent->AttachToComponent(
+			    ProcMeshComp, FAttachmentTransformRules::KeepRelativeTransform);
 		}
 	}
 
