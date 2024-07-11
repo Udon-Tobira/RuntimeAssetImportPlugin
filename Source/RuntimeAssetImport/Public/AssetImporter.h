@@ -24,6 +24,19 @@ enum class EConstructProceduralMeshComponentFromAssetFileResult : uint8 {
 
 /**
  * Type representing the result of executing
+ * ConcertStaticMeshComponentFromAssetFile function.
+ */
+UENUM(BlueprintType)
+enum class EConstructStaticMeshComponentFromAssetFileResult : uint8 {
+	/* Success to load */
+	Success,
+
+	/* Failed to load scene */
+	Failure
+};
+
+/**
+ * Type representing the result of executing
  * ConcertDynamicMeshComponentFromAssetFile function.
  */
 UENUM(BlueprintType)
@@ -82,6 +95,39 @@ public:
 	        AActor* Owner,
 	        EConstructProceduralMeshComponentFromAssetFileResult&
 	             ConstructProceduralMeshComponentFromAssetFileResult,
+	        bool ShouldReplicate                = true,
+	        bool ShouldRegisterComponentToOwner = true);
+
+	/**
+	 * Construct structured Static Mesh Component from the specified asset
+	 * file. The file format must be one supported by assimp.
+	 * @param   FilePath                    Path to the asset file.
+	 * @param   ParentMaterialInterface     The base material interface used to
+	 *                                      create materials for the imported
+	 *                                      meshes.
+	 * @param   Owner                       Owner of the returned static mesh
+	 *                                      component and its descendant.
+	 * @param[out]   ConstructStaticMeshComponentFromAssetFileResult
+	 *                  Result of the execution.
+	 * @param   ShouldReplicate             Whether the component should be
+	 *                                      replicated or not.
+	 * @param   ShouldRegisterComponentToOwner    Whether to register components
+	 *                                            to Owner. Must be turned ON to
+	 *                                            be reflected in the scene.
+	 * @details  If you have no particular preference, use the
+	 *           ConstructDynamicMeshComponentFromAssetFile function.
+	 *           In the absence of an editor, such as a packaged game, the
+	 *           material disappears and a checkerboard appears.
+	 */
+	UFUNCTION(BlueprintCallable,
+	          meta = (ExpandEnumAsExecs =
+	                      "ConstructStaticMeshComponentFromAssetFileResult"))
+	static UPARAM(DisplayName = "Root Static Mesh Component")
+	    UStaticMeshComponent* ConstructStaticMeshComponentFromAssetFile(
+	        const FString& FilePath, UMaterialInterface* ParentMaterialInterface,
+	        AActor* Owner,
+	        EConstructStaticMeshComponentFromAssetFileResult&
+	             ConstructStaticMeshComponentFromAssetFileResult,
 	        bool ShouldReplicate                = true,
 	        bool ShouldRegisterComponentToOwner = true);
 

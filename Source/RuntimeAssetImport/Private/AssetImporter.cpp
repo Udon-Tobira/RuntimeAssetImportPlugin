@@ -98,6 +98,23 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 static FMatrix AiMatrixToUEMatrix(const aiMatrix4x4& AiMatrix4x4);
 
 /**
+ * Construct StaticMeshComponent tree recursively from the
+ * ProceduralMeshComponentNode
+ * @param   ProceduralMeshComponentNode   Procedural Mesh Component
+ *                                        object to start treeing.
+ * @param   Owner               Owner of the returned static mesh
+ *                              component and its descendant.
+ * @param   ShouldReplicate     Whether the component should be replicated or
+ *                              not.
+ * @param   ShouldRegisterComponentToOwner    Whether to register components to
+ *                                            Owner. Must be turned ON to be
+ *                                            reflected in the scene.
+ */
+static UStaticMeshComponent* ConstructStaticMeshComponentTree(
+    UProceduralMeshComponent& ProceduralMeshComponentNode, AActor& Owner,
+    bool ShouldReplicate, bool ShouldRegisterComponentToOwner);
+
+/**
  * Construct DynamicMeshComponent tree recursively from the
  * ProceduralMeshComponentNode
  * @param   ProceduralMeshComponentNode   Procedural Mesh Component
@@ -166,6 +183,57 @@ UProceduralMeshComponent*
 
 	// return root ProceduralMeshComponent of ProceduralMeshComponentTree
 	return ProceduralMeshComponentTreeRoot;
+}
+
+UStaticMeshComponent* UAssetImporter::ConstructStaticMeshComponentFromAssetFile(
+    const FString& FilePath, UMaterialInterface* ParentMaterialInterface,
+    AActor* Owner,
+    EConstructStaticMeshComponentFromAssetFileResult&
+         ConstructStaticMeshComponentFromAssetFileResult,
+    bool ShouldReplicate, bool ShouldRegisterComponentToOwner) {
+	// check to ParentMaterialInterface is properly set
+	check(ParentMaterialInterface != nullptr);
+
+	// check to Owner is properly set
+	check(Owner != nullptr);
+
+	// constrcut ProceduralMeshComponentTree
+	EConstructProceduralMeshComponentFromAssetFileResult
+	            ConstructProceduralMeshComponentFromAssetFileResult;
+	const auto& ProceduralMeshComponentTreeRoot =
+	    ConstructProceduralMeshComponentFromAssetFile(
+	        FilePath, ParentMaterialInterface, Owner,
+	        /*out */ ConstructProceduralMeshComponentFromAssetFileResult, false,
+	        false);
+
+	// if failed to load asset
+	if (EConstructProceduralMeshComponentFromAssetFileResult::Failure ==
+	    ConstructProceduralMeshComponentFromAssetFileResult) {
+		// mark as failure
+		ConstructStaticMeshComponentFromAssetFileResult =
+		    EConstructStaticMeshComponentFromAssetFileResult::Failure;
+
+		// return empty pointer
+		return nullptr;
+	}
+
+	// construct Static Mesh Component Tree
+	// from the root of the Procedural Mesh Component Tree
+	const auto& StaticMeshComponentTreeRoot = ConstructStaticMeshComponentTree(
+	    *ProceduralMeshComponentTreeRoot, *Owner, ShouldReplicate,
+	    ShouldRegisterComponentToOwner);
+
+	// if ShouldRegisterComponentToOwner is ON
+	if (ShouldRegisterComponentToOwner) {
+		// register root to owning actor (Owner) to reflect in the unreal's scene
+		StaticMeshComponentTreeRoot->RegisterComponent();
+	}
+
+	// mark as success
+	ConstructStaticMeshComponentFromAssetFileResult =
+	    EConstructStaticMeshComponentFromAssetFileResult::Success;
+
+	return StaticMeshComponentTreeRoot;
 }
 
 UDynamicMeshComponent*
@@ -705,6 +773,103 @@ static FMatrix AiMatrixToUEMatrix(const aiMatrix4x4& AiMatrix4x4) {
 	        {M.a2, M.b2, M.c2, M.d2},
 	        {M.a3, M.b3, M.c3, M.d3},
 	        {M.a4, M.b4, M.c4, M.d4}};
+}
+
+static UStaticMeshComponent* ConstructStaticMeshComponentTree(
+    UProceduralMeshComponent& ProceduralMeshComponentNode, AActor& Owner,
+    const bool ShouldReplicate, const bool ShouldRegisterComponentToOwner) {
+	// new StaticMeshComponent
+	const auto& StaticMeshComponent = NewObject<UStaticMeshComponent>(&Owner);
+
+	// set whether Mesh should be replicated
+	StaticMeshComponent->SetIsReplicated(ShouldReplicate);
+
+	// copy RelativeTransform
+	StaticMeshComponent->SetRelativeTransform(
+	    ProceduralMeshComponentNode.GetRelativeTransform());
+
+	// if there are mesh sections
+	if (const auto& NumMeshSections =
+	        ProceduralMeshComponentNode.GetNumSections();
+	    NumMeshSections > 0) {
+		// new StaticMesh
+		const auto& StaticMesh      = NewObject<UStaticMesh>(&Owner);
+		StaticMesh->bAllowCPUAccess = true;
+		StaticMesh->NeverStream     = true;
+		StaticMesh->InitResources();
+		StaticMesh->SetLightingGuid();
+
+		// copy meshes
+		{
+			// get description of ProceduralMesh
+			auto ProceduralMeshDescription =
+			    BuildMeshDescription(&ProceduralMeshComponentNode);
+
+			// create parameters of BuildFromMeshDescriptions function
+			UStaticMesh::FBuildMeshDescriptionsParams BuildMeshDescriptionsParams;
+#if !WITH_EDITOR
+			BuildMeshDescriptionsParams.bFastBuild =
+			    true; // set fast build (mandatory in non-editor builds)
+			BuildMeshDescriptionsParams.bAllowCpuAccess = true;
+#endif
+
+			// copy meshes from ProceduralMeshComponent
+			StaticMesh->BuildFromMeshDescriptions({&ProceduralMeshDescription},
+			                                      BuildMeshDescriptionsParams);
+		}
+
+		// copy collisions
+		StaticMesh->CalculateExtendedBounds();
+		StaticMesh->SetBodySetup(ProceduralMeshComponentNode.ProcMeshBodySetup);
+
+		// copy materials
+		for (const auto& MaterialInterface :
+		     ProceduralMeshComponentNode.GetMaterials()) {
+			StaticMesh->AddMaterial(MaterialInterface);
+		}
+
+#if WITH_EDITOR
+		StaticMesh->PostEditChange();
+#endif
+
+		StaticMesh->MarkPackageDirty();
+
+		// set static mesh
+		StaticMeshComponent->SetStaticMesh(StaticMesh);
+	}
+
+	// Recursively construct children's StaticMeshComponentTree
+	const auto& Children    = ProceduralMeshComponentNode.GetAttachChildren();
+	const auto& NumChildren = Children.Num();
+	for (auto i = decltype(NumChildren){0}; i < NumChildren; ++i) {
+		// get child component
+		auto& ChildProcMeshCompNode =
+		    dynamic_cast<UProceduralMeshComponent&>(*Children[i]);
+
+		// construct ChildStaticMeshComponent
+		const auto& ChildStaticMeshComponent = ConstructStaticMeshComponentTree(
+		    ChildProcMeshCompNode, Owner, ShouldReplicate,
+		    ShouldRegisterComponentToOwner);
+
+		// if ShouldRegisterComponentToOwner is ON
+		if (ShouldRegisterComponentToOwner) {
+			// Setup of attachment of child component to ProcMeshComp
+			ChildStaticMeshComponent->SetupAttachment(StaticMeshComponent);
+
+			// register component to owning actor (Owner) to reflect in the unreal's
+			// scene
+			ChildStaticMeshComponent->RegisterComponent();
+		}
+		// if ShouldRegisterComponentToOwner is OFF
+		else {
+			// attach child component to ProcMeshComp
+			ChildStaticMeshComponent->AttachToComponent(
+			    StaticMeshComponent,
+			    FAttachmentTransformRules::KeepRelativeTransform);
+		}
+	}
+
+	return StaticMeshComponent;
 }
 
 static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
