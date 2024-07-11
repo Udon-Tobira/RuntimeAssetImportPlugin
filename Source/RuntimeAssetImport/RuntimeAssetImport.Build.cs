@@ -27,7 +27,10 @@ public class RuntimeAssetImport : ModuleRules
             {
                 "Core",
                 "ProceduralMeshComponent",
-                "assimp"
+                "assimp",
+                "GeometryFramework",
+                "GeometryCore",
+                "MeshConversion",
             }
             );
 

@@ -4,6 +4,8 @@
 
 #include "ImageUtils.h"
 #include "LogAssetImporter.h"
+#include "MeshDescriptionToDynamicMesh.h"
+#include "ProceduralMeshConversion.h"
 
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
@@ -94,6 +96,23 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
  * @return  UE's matrix
  */
 static FMatrix AiMatrixToUEMatrix(const aiMatrix4x4& AiMatrix4x4);
+
+/**
+ * Construct DynamicMeshComponent tree recursively from the
+ * ProceduralMeshComponentNode
+ * @param   ProceduralMeshComponentNode   Procedural Mesh Component
+ *                                        object to start treeing.
+ * @param   Owner               Owner of the returned dynamic mesh
+ *                              component and its descendant.
+ * @param   ShouldReplicate     Whether the component should be replicated or
+ *                              not.
+ * @param   ShouldRegisterComponentToOwner    Whether to register components to
+ *                                            Owner. Must be turned ON to be
+ *                                            reflected in the scene.
+ */
+static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
+    UProceduralMeshComponent& ProceduralMeshComponentNode, AActor& Owner,
+    bool ShouldReplicate, bool ShouldRegisterComponentToOwner);
 #pragma endregion
 
 UProceduralMeshComponent*
@@ -147,6 +166,58 @@ UProceduralMeshComponent*
 
 	// return root ProceduralMeshComponent of ProceduralMeshComponentTree
 	return ProceduralMeshComponentTreeRoot;
+}
+
+UDynamicMeshComponent*
+    UAssetImporter::ConstructDynamicMeshComponentFromAssetFile(
+        const FString& FilePath, UMaterialInterface* ParentMaterialInterface,
+        AActor* Owner,
+        EConstructDynamicMeshComponentFromAssetFileResult&
+             ConstructDynamicMeshComponentFromAssetFileResult,
+        bool ShouldReplicate, bool ShouldRegisterComponentToOwner) {
+	// check to ParentMaterialInterface is properly set
+	check(ParentMaterialInterface != nullptr);
+
+	// check to Owner is properly set
+	check(Owner != nullptr);
+
+	// constrcut ProceduralMeshComponentTree
+	EConstructProceduralMeshComponentFromAssetFileResult
+	            ConstructProceduralMeshComponentFromAssetFileResult;
+	const auto& ProceduralMeshComponentTreeRoot =
+	    ConstructProceduralMeshComponentFromAssetFile(
+	        FilePath, ParentMaterialInterface, Owner,
+	        /*out */ ConstructProceduralMeshComponentFromAssetFileResult, false,
+	        false);
+
+	// if failed to load asset
+	if (EConstructProceduralMeshComponentFromAssetFileResult::Failure ==
+	    ConstructProceduralMeshComponentFromAssetFileResult) {
+		// mark as failure
+		ConstructDynamicMeshComponentFromAssetFileResult =
+		    EConstructDynamicMeshComponentFromAssetFileResult::Failure;
+
+		// return empty pointer
+		return nullptr;
+	}
+
+	// construct Dynamic Mesh Component Tree
+	// from the root of the Procedural Mesh Component Tree
+	const auto& DynamicMeshComponentTreeRoot = ConstructDynamicMeshComponentTree(
+	    *ProceduralMeshComponentTreeRoot, *Owner, ShouldReplicate,
+	    ShouldRegisterComponentToOwner);
+
+	// if ShouldRegisterComponentToOwner is ON
+	if (ShouldRegisterComponentToOwner) {
+		// register root to owning actor (Owner) to reflect in the unreal's scene
+		DynamicMeshComponentTreeRoot->RegisterComponent();
+	}
+
+	// mark as success
+	ConstructDynamicMeshComponentFromAssetFileResult =
+	    EConstructDynamicMeshComponentFromAssetFileResult::Success;
+
+	return DynamicMeshComponentTreeRoot;
 }
 
 #pragma region        definitions of static functions
@@ -634,5 +705,76 @@ static FMatrix AiMatrixToUEMatrix(const aiMatrix4x4& AiMatrix4x4) {
 	        {M.a2, M.b2, M.c2, M.d2},
 	        {M.a3, M.b3, M.c3, M.d3},
 	        {M.a4, M.b4, M.c4, M.d4}};
+}
+
+static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
+    UProceduralMeshComponent& ProceduralMeshComponentNode, AActor& Owner,
+    const bool ShouldReplicate, const bool ShouldRegisterComponentToOwner) {
+	// new DynamicMeshComponent
+	const auto& DynamicMeshComponent = NewObject<UDynamicMeshComponent>(&Owner);
+
+	// set whether Mesh should be replicated
+	DynamicMeshComponent->SetIsReplicated(ShouldReplicate);
+
+	// copy RelativeTransform
+	DynamicMeshComponent->SetRelativeTransform(
+	    ProceduralMeshComponentNode.GetRelativeTransform());
+
+	// set materials
+	DynamicMeshComponent->ConfigureMaterialSet(
+	    ProceduralMeshComponentNode.GetMaterials());
+
+	// if there are mesh sections
+	if (const auto& NumMeshSections =
+	        ProceduralMeshComponentNode.GetNumSections();
+	    NumMeshSections > 0) {
+		// copy meshes from Procedural Mesh
+		auto ProceduralMeshDescription =
+		    BuildMeshDescription(&ProceduralMeshComponentNode);
+		UE::Geometry::FDynamicMesh3   DynamicMesh3;
+		FMeshDescriptionToDynamicMesh MeshDescriptionToDynamicMesh;
+		MeshDescriptionToDynamicMesh.Convert(&ProceduralMeshDescription,
+		                                     DynamicMesh3, true);
+
+		// enable collisions
+		DynamicMeshComponent->EnableComplexAsSimpleCollision();
+		DynamicMeshComponent->SetCollisionProfileName("BlockAllDynamic");
+
+		// set
+		DynamicMeshComponent->SetMesh(MoveTemp(DynamicMesh3));
+	}
+
+	// Recursively construct children's DynamicMeshComponentTree
+	const auto& Children    = ProceduralMeshComponentNode.GetAttachChildren();
+	const auto& NumChildren = Children.Num();
+	for (auto i = decltype(NumChildren){0}; i < NumChildren; ++i) {
+		// get child component
+		auto& ChildProcMeshCompNode =
+		    dynamic_cast<UProceduralMeshComponent&>(*Children[i]);
+
+		// construct ChildDynamicMeshComponent
+		const auto& ChildDynamicMeshComponent = ConstructDynamicMeshComponentTree(
+		    ChildProcMeshCompNode, Owner, ShouldReplicate,
+		    ShouldRegisterComponentToOwner);
+
+		// if ShouldRegisterComponentToOwner is ON
+		if (ShouldRegisterComponentToOwner) {
+			// Setup of attachment of child component to DynamicMeshComponent
+			ChildDynamicMeshComponent->SetupAttachment(DynamicMeshComponent);
+
+			// register component to owning actor (Owner) to reflect in the unreal's
+			// scene
+			ChildDynamicMeshComponent->RegisterComponent();
+		}
+		// if ShouldRegisterComponentToOwner is OFF
+		else {
+			// attach child component to DynamicMeshComponent
+			ChildDynamicMeshComponent->AttachToComponent(
+			    DynamicMeshComponent,
+			    FAttachmentTransformRules::KeepRelativeTransform);
+		}
+	}
+
+	return DynamicMeshComponent;
 }
 #pragma endregion
