@@ -54,8 +54,8 @@ public:
 	UFUNCTION(BlueprintCallable,
 	          meta = (ExpandEnumAsExecs =
 	                      "ConstructProceduralMeshComponentFromAssetFileResult"))
-	static UProceduralMeshComponent*
-	    ConstructProceduralMeshComponentFromAssetFile(
+	static UPARAM(DisplayName = "Root Procedural Mesh Component")
+	    UProceduralMeshComponent* ConstructProceduralMeshComponentFromAssetFile(
 	        const FString& FilePath, UMaterialInterface* ParentMaterialInterface,
 	        AActor* Owner,
 	        EConstructProceduralMeshComponentFromAssetFileResult&
