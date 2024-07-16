@@ -73,8 +73,8 @@ public:
 	 * @param   ShouldRegisterComponentToOwner    Whether to register components
 	 *                                            to Owner. Must be turned ON to
 	 *                                            be reflected in the scene.
-	 * @return  This function returns the constructed Procedural Mesh Component.
-	 *          It also returns the result of the execution with
+	 * @return  This function returns the root of the constructed Procedural Mesh
+	 *          Components. It also returns the result of the execution with
 	 *          ConstructProceduralMeshComponentFromAssetFileResult.
 	 *          If the result is Success, the return value is valid,
 	 *          If the result is Failure, the return value is nullptr.
@@ -116,6 +116,11 @@ public:
 	 * @param   ShouldRegisterComponentToOwner    Whether to register components
 	 *                                            to Owner. Must be turned ON to
 	 *                                            be reflected in the scene.
+	 * @return  This function returns the root of the constructed Static Mesh
+	 *          Components. It also returns the result of the execution with
+	 *          ConstructStaticMeshComponentFromAssetFileResult.
+	 *          If the result is Success, the return value is valid,
+	 *          If the result is Failure, the return value is nullptr.
 	 * @details  If you have no particular preference, use the
 	 *           ConstructDynamicMeshComponentFromAssetFile function.
 	 *           In the absence of an editor, such as a packaged game, the
@@ -150,6 +155,11 @@ public:
 	 * @param   ShouldRegisterComponentToOwner    Whether to register components
 	 *                                            to Owner. Must be turned ON to
 	 *                                            be reflected in the scene.
+	 * @return  This function returns the root of the constructed Dynamic Mesh
+	 *          Components. It also returns the result of the execution with
+	 *          ConstructDynamicMeshComponentFromAssetFileResult.
+	 *          If the result is Success, the return value is valid,
+	 *          If the result is Failure, the return value is nullptr.
 	 */
 	UFUNCTION(BlueprintCallable,
 	          meta = (ExpandEnumAsExecs =
