@@ -65,8 +65,8 @@ public:
 	 *                                      create materials for the constructed
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned procedural mesh
-	 *                                      component, its descendant and its
-	 *                                      material instance.
+	 *                                      component, its descendants and its
+	 *                                      material instances.
 	 * @param   ShouldRegisterComponentToOwner    Whether to register components
 	 *                                            to Owner. Must be turned ON to
 	 *                                            be reflected in the scene.
@@ -104,8 +104,8 @@ public:
 	 *                                      create materials for the constructed
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned procedural mesh
-	 *                                      component, its descendant and its
-	 *                                      material instance.
+	 *                                      component, its descendants and its
+	 *                                      material instances.
 	 * @param[out]   ConstructProceduralMeshComponentFromAssetFileResult
 	 *                  Result of the execution.
 	 * @param   ShouldReplicate             Whether the component should be
@@ -147,8 +147,8 @@ public:
 	 *                                      create materials for the constructed
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned static mesh
-	 *                                      component, its descendant and its
-	 *                                      material instance.
+	 *                                      component, its descendants and its
+	 *                                      material instances.
 	 * @param[out]   ConstructStaticMeshComponentFromAssetFileResult
 	 *                  Result of the execution.
 	 * @param   ShouldReplicate             Whether the component should be
@@ -186,8 +186,8 @@ public:
 	 *                                      create materials for the constructed
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned dynamic mesh
-	 *                                      component, its descendant and its
-	 *                                      material instance.
+	 *                                      component, its descendants and its
+	 *                                      material instances.
 	 * @param[out]   ConstructDynamicMeshComponentFromAssetFileResult
 	 *                  Result of the execution.
 	 * @param   ShouldReplicate             Whether the component should be
