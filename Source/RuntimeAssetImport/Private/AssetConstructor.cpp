@@ -144,7 +144,6 @@ static UStaticMeshComponent* ConstructStaticMeshComponentTree(
 static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
     UProceduralMeshComponent& ProceduralMeshComponentNode, AActor& Owner,
     bool ShouldReplicate, bool ShouldRegisterComponentToOwner);
-#pragma endregion
 
 template <typename MeshComponentT>
 static MeshComponentT* ConstructMeshComponentFromMeshData(
@@ -343,6 +342,7 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 	// return root MeshComponent of MeshComponentTree
 	return MeshComponentList[0];
 }
+#pragma endregion
 
 UProceduralMeshComponent*
     UAssetConstructor::ConstructProceduralMeshComponentFromMeshData(
