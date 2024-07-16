@@ -62,7 +62,7 @@ public:
 	 * Construct structured Procedural Mesh Component from the mesh data.
 	 * @param   MeshData                    mesh data
 	 * @param   ParentMaterialInterface     The base material interface used to
-	 *                                      create materials for the imported
+	 *                                      create materials for the constructed
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned procedural mesh
 	 *                                      component, its descendant and its
@@ -101,7 +101,7 @@ public:
 	 * file. The file format must be one supported by assimp.
 	 * @param   FilePath                    Path to the asset file.
 	 * @param   ParentMaterialInterface     The base material interface used to
-	 *                                      create materials for the imported
+	 *                                      create materials for the constructed
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned procedural mesh
 	 *                                      component, its descendant and its
@@ -144,7 +144,7 @@ public:
 	 * file. The file format must be one supported by assimp.
 	 * @param   FilePath                    Path to the asset file.
 	 * @param   ParentMaterialInterface     The base material interface used to
-	 *                                      create materials for the imported
+	 *                                      create materials for the constructed
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned static mesh
 	 *                                      component, its descendant and its
@@ -183,7 +183,7 @@ public:
 	 * file. The file format must be one supported by assimp.
 	 * @param   FilePath                    Path to the asset file.
 	 * @param   ParentMaterialInterface     The base material interface used to
-	 *                                      create materials for the imported
+	 *                                      create materials for the constructed
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned dynamic mesh
 	 *                                      component, its descendant and its
