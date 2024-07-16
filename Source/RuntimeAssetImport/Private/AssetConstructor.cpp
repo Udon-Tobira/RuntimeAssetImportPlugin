@@ -272,8 +272,14 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 UProceduralMeshComponent*
     UAssetConstructor::ConstructProceduralMeshComponentFromMeshData(
         const FLoadedMeshData& MeshData,
-        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
-        bool ShouldRegisterComponentToOwner) {
+        UMaterialInterface* ParentMaterialInterface, AActor* const Owner,
+        const bool ShouldRegisterComponentToOwner) {
+	// check to ParentMaterialInterface is properly set
+	check(ParentMaterialInterface != nullptr);
+
+	// check to Owner is properly set
+	check(Owner != nullptr);
+
 	return ConstructMeshComponentFromMeshData<UProceduralMeshComponent>(
 	    MeshData, ParentMaterialInterface, Owner, ShouldRegisterComponentToOwner);
 }
@@ -281,8 +287,14 @@ UProceduralMeshComponent*
 UStaticMeshComponent*
     UAssetConstructor::ConstructStaticMeshComponentFromMeshData(
         const FLoadedMeshData& MeshData,
-        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
-        bool ShouldRegisterComponentToOwner) {
+        UMaterialInterface* ParentMaterialInterface, AActor* const Owner,
+        const bool ShouldRegisterComponentToOwner) {
+	// check to ParentMaterialInterface is properly set
+	check(ParentMaterialInterface != nullptr);
+
+	// check to Owner is properly set
+	check(Owner != nullptr);
+
 	return ConstructMeshComponentFromMeshData<UStaticMeshComponent>(
 	    MeshData, ParentMaterialInterface, Owner, ShouldRegisterComponentToOwner);
 }
@@ -290,8 +302,14 @@ UStaticMeshComponent*
 UDynamicMeshComponent*
     UAssetConstructor::ConstructDynamicMeshComponentFromMeshData(
         const FLoadedMeshData& MeshData,
-        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
-        bool ShouldRegisterComponentToOwner) {
+        UMaterialInterface* ParentMaterialInterface, AActor* const Owner,
+        const bool ShouldRegisterComponentToOwner) {
+	// check to ParentMaterialInterface is properly set
+	check(ParentMaterialInterface != nullptr);
+
+	// check to Owner is properly set
+	check(Owner != nullptr);
+
 	return ConstructMeshComponentFromMeshData<UDynamicMeshComponent>(
 	    MeshData, ParentMaterialInterface, Owner, ShouldRegisterComponentToOwner);
 }
