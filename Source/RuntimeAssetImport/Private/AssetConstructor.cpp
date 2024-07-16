@@ -57,13 +57,6 @@ static TArray<UMaterialInstanceDynamic*>
                               UMaterialInterface& ParentMaterialInterface);
 
 /**
- * Generate material datas from Ai(Assimp) Scene object.
- * @param AiScene Ai(Assimp) Scene
- */
-static TArray<FLoadedMaterialData>
-    GenerateMaterialDatas(const aiScene& AiScene);
-
-/**
  * Generate material instances from array of material datas.
  * @param Owner Owner of the material instances
  * @param MaterialDatas array of material datas
@@ -745,125 +738,7 @@ static TArray<UMaterialInstanceDynamic*>
 	return MaterialInstances;
 }
 
-static TArray<FLoadedMaterialData>
-    GenerateMaterialDatas(const aiScene& AiScene) {
-	TArray<FLoadedMaterialData> MaterialList;
-	const auto&                 NumMaterials = AiScene.mNumMaterials;
-	MaterialList.AddDefaulted(NumMaterials);
-
-	if (0 == NumMaterials) {
-		UE_LOG(LogAssetConstructor, Warning, TEXT("There is no Materials."));
-	}
-	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
-		// get reference of the material
-		auto& MaterialData = MaterialList[i];
-
-		// get ai(assimp) material
-		const auto& AiMaterial = AiScene.mMaterials[i];
-
-		// get number of textures
-		const auto& NumTexture = AiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-
-		// maybe, in case Vector4D Color is set
-		if (0 == NumTexture) {
-			// log that no texture is found
-			UE_LOG(LogAssetConstructor, Log,
-			       TEXT("No texture is found for material in index %d"), i);
-
-			aiColor4D   AiDiffuse;
-			const auto& GetDiffuseResult =
-			    AiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, AiDiffuse);
-			switch (GetDiffuseResult) {
-			case aiReturn_FAILURE:
-				UE_LOG(LogAssetConstructor, Warning,
-				       TEXT("No color is set for material in index %d"), i);
-				break;
-			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetConstructor, Warning,
-				       TEXT("Color couldn't get due to out of memory"));
-				break;
-			default:
-				verifyf(aiReturn_SUCCESS == GetDiffuseResult,
-				        TEXT("Bug. GetDiffuseResult should be aiReturn_SUCCESS."));
-
-				MaterialData.Color =
-				    FLinearColor{AiDiffuse.r, AiDiffuse.g, AiDiffuse.b, AiDiffuse.a};
-				break;
-			}
-		}
-		// if texture is set
-		else {
-			verifyf(NumTexture == 1,
-			        TEXT("Currently, only one texture is supported "
-			             "for diffuse (%d textures are found for material in "
-			             "index %d)"),
-			        NumTexture, i);
-
-			aiString    AiTexture0Path;
-			const auto& AiGetTextureResult = AiMaterial->Get(
-			    AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), AiTexture0Path);
-			switch (AiGetTextureResult) {
-			case aiReturn_FAILURE:
-				UE_LOG(LogAssetConstructor, Warning,
-				       TEXT("Failed to get texture for material in index %d"), i);
-				break;
-			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetConstructor, Warning,
-				       TEXT("Failed to get texture due to out of memory"));
-				break;
-			default:
-				verifyf(aiReturn_SUCCESS == AiGetTextureResult,
-				        TEXT("Bug. AiGetTextureResult should be aiReturn_SUCCESS."));
-				const auto& AiTexture0 =
-				    AiScene.GetEmbeddedTexture(AiTexture0Path.C_Str());
-
-				if (nullptr == AiTexture0) {
-					// TODO: load from file
-					UE_LOG(LogAssetConstructor, Error,
-					       TEXT("Texture %hs is not embedded in the file and "
-					            "cannot be read."),
-					       AiTexture0Path.C_Str());
-				} else {
-					// get width and height
-					const auto& Width  = AiTexture0->mWidth;
-					const auto& Height = AiTexture0->mHeight;
-
-					// if NOT compressed data
-					if (Height != 0) {
-						TArray64<uint8> CompressedTextureData;
-
-						FImageView ImageView(AiTexture0->pcData, Width, Height,
-						                     ERawImageFormat::BGRA8);
-						FImageUtils::CompressImage(CompressedTextureData, TEXT("png"),
-						                           ImageView);
-
-						MaterialData.CompressedTextureData =
-						    MoveTemp(CompressedTextureData);
-					}
-					// if compressed data
-					else {
-						// when AiTexture0 is compressed
-						const auto& Size = AiTexture0->mWidth;
-						const auto& SeqData =
-						    reinterpret_cast<const uint8*>(AiTexture0->pcData);
-
-						MaterialData.CompressedTextureData =
-						    decltype(MaterialData.CompressedTextureData)(SeqData, Size);
-					}
-					MaterialData.HasTexture = true;
-				}
-
-				break;
-			}
-		}
-
-		MaterialList[i] = MaterialData;
-	}
-
-	return MaterialList;
-}
-
-TArray<UMaterialInstanceDynamic*>
+static TArray<UMaterialInstanceDynamic*>
     GenerateMaterialInstances(AActor&                            Owner,
                               const TArray<FLoadedMaterialData>& MaterialDatas,
                               UMaterialInterface& ParentMaterialInterface) {
