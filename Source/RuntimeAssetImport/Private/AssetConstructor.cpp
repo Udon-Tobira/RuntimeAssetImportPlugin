@@ -947,13 +947,16 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 	// new ProceduralMeshComponent
 	const auto& ProcMeshComp = NewObject<UProceduralMeshComponent>(&Owner);
 
-	// set whether Mesh should be replicated
-	ProcMeshComp->SetIsReplicated(ShouldReplicate);
-
 	// set RelativeTransform
 	const auto& AiTransformMatrix = AiNode.mTransformation;
 	ProcMeshComp->SetRelativeTransform(
 	    static_cast<FTransform>(AiMatrixToUEMatrix(AiTransformMatrix)));
+
+	// make MeshComponent network addressable
+	ProcMeshComp->SetNetAddressable();
+
+	// set whether MeshComponent should be replicated
+	ProcMeshComp->SetIsReplicated(ShouldReplicate);
 
 	// create mesh sections
 	const auto& NumMeshes = AiNode.mNumMeshes;
@@ -1190,12 +1193,15 @@ static UStaticMeshComponent* ConstructStaticMeshComponentTree(
 	// new StaticMeshComponent
 	const auto& StaticMeshComponent = NewObject<UStaticMeshComponent>(&Owner);
 
-	// set whether Mesh should be replicated
-	StaticMeshComponent->SetIsReplicated(ShouldReplicate);
-
 	// copy RelativeTransform
 	StaticMeshComponent->SetRelativeTransform(
 	    ProceduralMeshComponentNode.GetRelativeTransform());
+
+	// make MeshComponent network addressable
+	StaticMeshComponent->SetNetAddressable();
+
+	// set whether MeshComponent should be replicated
+	StaticMeshComponent->SetIsReplicated(ShouldReplicate);
 
 	// if there are mesh sections
 	if (const auto& NumMeshSections =
@@ -1287,9 +1293,6 @@ static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
 	// new DynamicMeshComponent
 	const auto& DynamicMeshComponent = NewObject<UDynamicMeshComponent>(&Owner);
 
-	// set whether Mesh should be replicated
-	DynamicMeshComponent->SetIsReplicated(ShouldReplicate);
-
 	// copy RelativeTransform
 	DynamicMeshComponent->SetRelativeTransform(
 	    ProceduralMeshComponentNode.GetRelativeTransform());
@@ -1297,6 +1300,12 @@ static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
 	// set materials
 	DynamicMeshComponent->ConfigureMaterialSet(
 	    ProceduralMeshComponentNode.GetMaterials());
+
+	// make MeshComponent network addressable
+	DynamicMeshComponent->SetNetAddressable();
+
+	// set whether MeshComponent should be replicated
+	DynamicMeshComponent->SetIsReplicated(ShouldReplicate);
 
 	// if there are mesh sections
 	if (const auto& NumMeshSections =
