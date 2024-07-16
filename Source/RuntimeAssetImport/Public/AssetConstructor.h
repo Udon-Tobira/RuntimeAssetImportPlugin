@@ -115,6 +115,27 @@ public:
 	        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
 	        bool ShouldRegisterComponentToOwner = true);
 
+	/**
+	 * Construct structured Dynamic Mesh Component from the mesh data.
+	 * @param   MeshData                    mesh data
+	 * @param   ParentMaterialInterface     The base material interface used to
+	 *                                      create materials for the constructed
+	 *                                      meshes.
+	 * @param   Owner                       Owner of the returned dynamic mesh
+	 *                                      component, its descendants and its
+	 *                                      material instances.
+	 * @param   ShouldRegisterComponentToOwner    Whether to register components
+	 *                                            to Owner. Must be turned ON to
+	 *                                            be reflected in the scene.
+	 * @return  the root of the constructed Dynamic Mesh Components.
+	 */
+	UFUNCTION(BlueprintCallable)
+	static UPARAM(DisplayName = "Root Dynamic Mesh Component")
+	    UDynamicMeshComponent* ConstructDynamicMeshComponentFromMeshData(
+	        const FLoadedMeshData& MeshData,
+	        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
+	        bool ShouldRegisterComponentToOwner = true);
+
 public:
 	/**
 	 * Construct structured Procedural Mesh Component from the specified asset

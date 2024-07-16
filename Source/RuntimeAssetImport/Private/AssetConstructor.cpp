@@ -145,17 +145,25 @@ static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
     UProceduralMeshComponent& ProceduralMeshComponentNode, AActor& Owner,
     bool ShouldReplicate, bool ShouldRegisterComponentToOwner);
 
+/**
+ * template function to construct specified mesh component from mesh data.
+ * @tparam  MeshComponentT UProceduralMesh/UStaticMesh/UDynamicMesh
+ * @param   MeshData                    loaded mesh data
+ * @param   ParentMaterialInterface     The base material interface used to
+ *                                      create materials for the constructed
+ *                                      meshes.
+ * @param   Owner                       Owner of the returned dynamic mesh
+ *                                      component, its descendants and its
+ *                                      material instances.
+ * @param   ShouldRegisterComponentToOwner    Whether to register components
+ *                                            to Owner. Must be turned ON to
+ *                                            be reflected in the scene.
+ */
 template <typename MeshComponentT>
 static MeshComponentT* ConstructMeshComponentFromMeshData(
     const FLoadedMeshData& MeshData,
     UMaterialInterface* ParentMaterialInterface, AActor* Owner,
     bool ShouldRegisterComponentToOwner) {
-	// type MeshComponentT check
-	static_assert(std::is_same_v<MeshComponentT, UProceduralMeshComponent> ||
-	                  std::is_same_v<MeshComponentT, UStaticMeshComponent>,
-	              "Only UProceduralMeshComponent or UStaticMeshComponent is "
-	              "supported for MeshComponentT.");
-
 	// check that the NodeList in MeshData has at least one node (because there
 	// must be a root node)
 	check(!MeshData.NodeList.IsEmpty());
@@ -201,9 +209,9 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 		const auto& NumSections = Sections.Num();
 
 		// create mesh sections
-		for (auto Section_i = decltype(NumSections){0}; Section_i < NumSections;
-		     ++Section_i) {
-			if constexpr (std::is_same_v<UProceduralMeshComponent, MeshComponentT>) {
+		if constexpr (std::is_same_v<UProceduralMeshComponent, MeshComponentT>) {
+			for (auto Section_i = decltype(NumSections){0}; Section_i < NumSections;
+			     ++Section_i) {
 				// get reference of the section
 				const auto& Section = Sections[Section_i];
 
@@ -223,82 +231,107 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 				const auto& MaterialIndex    = Section.MaterialIndex;
 				const auto& MaterialInstance = MaterialInstances[MaterialIndex];
 				MeshComponent->SetMaterial(Section_i, MaterialInstance);
-			} else {
-				// create transient Procedural Mesh Component
-				const auto& ProceduralMeshComponent =
-				    NewObject<UProceduralMeshComponent>();
+			}
+		} else {
+			// create transient Procedural Mesh Component
+			const auto& SrcProcMeshComp = NewObject<UProceduralMeshComponent>();
+
+			// set RelativeTransform
+			SrcProcMeshComp->SetRelativeTransform(Node.RelativeTransform);
+
+			// create meshes of Procedural Mesh Component
+			for (auto Section_i = decltype(NumSections){0}; Section_i < NumSections;
+			     ++Section_i) {
+				// get reference of the section
+				const auto& Section = Sections[Section_i];
+
+				// CreateCollision parameter
+				constexpr auto CreateCollision = true;
+
+				// bSRGBCConversion parameter
+				constexpr auto bSRGBCConversion = false;
+
+				// create mesh section
+				SrcProcMeshComp->CreateMeshSection_LinearColor(
+				    Section_i, Section.Vertices, Section.Triangles, Section.Normals,
+				    Section.UV0Channel, Section.VertexColors0, Section.Tangents,
+				    CreateCollision, bSRGBCConversion);
+
+				// set Material
+				const auto& MaterialIndex    = Section.MaterialIndex;
+				const auto& MaterialInstance = MaterialInstances[MaterialIndex];
+				SrcProcMeshComp->SetMaterial(Section_i, MaterialInstance);
+			}
+
+			// get description of ProceduralMesh
+			auto ProceduralMeshDescription = BuildMeshDescription(SrcProcMeshComp);
+
+			if constexpr (std::is_same_v<UStaticMeshComponent, MeshComponentT>) {
+				// new StaticMesh
+				const auto& StaticMesh      = NewObject<UStaticMesh>(Owner);
+				StaticMesh->bAllowCPUAccess = true;
+				StaticMesh->NeverStream     = true;
+				StaticMesh->InitResources();
+				StaticMesh->SetLightingGuid();
+
+				// copy meshes
+				// create parameters of BuildFromMeshDescriptions function
 				{
-					// set RelativeTransform
-					ProceduralMeshComponent->SetRelativeTransform(Node.RelativeTransform);
-
-					// get reference of the section
-					const auto& Section = Sections[Section_i];
-
-					// CreateCollision parameter
-					constexpr auto CreateCollision = true;
-
-					// bSRGBCConversion parameter
-					constexpr auto bSRGBCConversion = false;
-
-					// create mesh section
-					ProceduralMeshComponent->CreateMeshSection_LinearColor(
-					    Section_i, Section.Vertices, Section.Triangles, Section.Normals,
-					    Section.UV0Channel, Section.VertexColors0, Section.Tangents,
-					    CreateCollision, bSRGBCConversion);
-
-					// set Material
-					const auto& MaterialIndex    = Section.MaterialIndex;
-					const auto& MaterialInstance = MaterialInstances[MaterialIndex];
-					ProceduralMeshComponent->SetMaterial(Section_i, MaterialInstance);
-				}
-
-				if constexpr (std::is_same_v<UStaticMeshComponent, MeshComponentT>) {
-					// new StaticMesh
-					const auto& StaticMesh      = NewObject<UStaticMesh>(Owner);
-					StaticMesh->bAllowCPUAccess = true;
-					StaticMesh->NeverStream     = true;
-					StaticMesh->InitResources();
-					StaticMesh->SetLightingGuid();
-
-					// copy meshes
-					{
-						// get description of ProceduralMesh
-						auto ProceduralMeshDescription =
-						    BuildMeshDescription(ProceduralMeshComponent);
-
-						// create parameters of BuildFromMeshDescriptions function
-						UStaticMesh::FBuildMeshDescriptionsParams
-						    BuildMeshDescriptionsParams;
+					UStaticMesh::FBuildMeshDescriptionsParams BuildMeshDescriptionsParams;
 #if !WITH_EDITOR
-						BuildMeshDescriptionsParams.bFastBuild =
-						    true; // set fast build (mandatory in non-editor builds)
-						BuildMeshDescriptionsParams.bAllowCpuAccess = true;
+					BuildMeshDescriptionsParams.bFastBuild =
+					    true; // set fast build (mandatory in non-editor builds)
+					BuildMeshDescriptionsParams.bAllowCpuAccess = true;
 #endif
 
-						// copy meshes from ProceduralMeshComponent
-						StaticMesh->BuildFromMeshDescriptions({&ProceduralMeshDescription},
-						                                      BuildMeshDescriptionsParams);
-					}
+					// copy meshes from SrcProcMeshComp
+					StaticMesh->BuildFromMeshDescriptions({&ProceduralMeshDescription},
+					                                      BuildMeshDescriptionsParams);
+				}
 
-					// copy collisions
-					StaticMesh->CalculateExtendedBounds();
-					StaticMesh->SetBodySetup(ProceduralMeshComponent->ProcMeshBodySetup);
+				// copy collisions
+				StaticMesh->CalculateExtendedBounds();
+				StaticMesh->SetBodySetup(SrcProcMeshComp->ProcMeshBodySetup);
 
-					// copy materials
-					for (const auto& MaterialInterface :
-					     ProceduralMeshComponent->GetMaterials()) {
-						StaticMesh->AddMaterial(MaterialInterface);
-					}
+				// copy materials
+				for (const auto& MaterialInterface : SrcProcMeshComp->GetMaterials()) {
+					StaticMesh->AddMaterial(MaterialInterface);
+				}
 
 #if WITH_EDITOR
-					StaticMesh->PostEditChange();
+				StaticMesh->PostEditChange();
 #endif
 
-					StaticMesh->MarkPackageDirty();
+				StaticMesh->MarkPackageDirty();
 
-					// set static mesh
-					MeshComponent->SetStaticMesh(StaticMesh);
-				}
+				// set static mesh
+				MeshComponent->SetStaticMesh(StaticMesh);
+			} else if constexpr (std::is_same_v<UDynamicMeshComponent,
+			                                    MeshComponentT>) {
+				UE::Geometry::FDynamicMesh3   DynamicMesh3;
+				FMeshDescriptionToDynamicMesh MeshDescriptionToDynamicMesh;
+				MeshDescriptionToDynamicMesh.Convert(&ProceduralMeshDescription,
+				                                     DynamicMesh3, true);
+
+				// enable collisions
+				MeshComponent->EnableComplexAsSimpleCollision();
+				MeshComponent->SetCollisionProfileName(
+				    UCollisionProfile::BlockAllDynamic_ProfileName);
+
+				// set materials
+				MeshComponent->ConfigureMaterialSet(SrcProcMeshComp->GetMaterials());
+
+				// set
+				MeshComponent->SetMesh(MoveTemp(DynamicMesh3));
+			} else {
+				// type check error
+				static_assert(
+				    []() {
+					    return false;
+				    }(),
+				    "Only UProceduralMeshComponent, UStaticMeshComponent or "
+				    "UDynamicMeshComponent is "
+				    "supported for MeshComponentT.");
 			}
 		}
 
@@ -359,6 +392,15 @@ UStaticMeshComponent*
         UMaterialInterface* ParentMaterialInterface, AActor* Owner,
         bool ShouldRegisterComponentToOwner) {
 	return ConstructMeshComponentFromMeshData<UStaticMeshComponent>(
+	    MeshData, ParentMaterialInterface, Owner, ShouldRegisterComponentToOwner);
+}
+
+UDynamicMeshComponent*
+    UAssetConstructor::ConstructDynamicMeshComponentFromMeshData(
+        const FLoadedMeshData& MeshData,
+        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
+        bool ShouldRegisterComponentToOwner) {
+	return ConstructMeshComponentFromMeshData<UDynamicMeshComponent>(
 	    MeshData, ParentMaterialInterface, Owner, ShouldRegisterComponentToOwner);
 }
 
