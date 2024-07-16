@@ -147,7 +147,7 @@ static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
 #pragma endregion
 
 template <typename MeshComponentT>
-MeshComponentT* ConstructMeshComponentFromMeshData(
+static MeshComponentT* ConstructMeshComponentFromMeshData(
     const FLoadedMeshData& MeshData,
     UMaterialInterface* ParentMaterialInterface, AActor* Owner,
     bool ShouldRegisterComponentToOwner) {
