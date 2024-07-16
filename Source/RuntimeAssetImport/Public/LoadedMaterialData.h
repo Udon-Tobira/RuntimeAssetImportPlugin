@@ -15,7 +15,7 @@ struct RUNTIMEASSETIMPORT_API FLoadedMaterialData {
 
 	// Material diffuse color, available only if HasTexture is false.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	FLinearColor Color;
+	FLinearColor Color = FLinearColor(ForceInit);
 
 	// Texture data compressed into some format, available only if HasTexture is
 	// true.
