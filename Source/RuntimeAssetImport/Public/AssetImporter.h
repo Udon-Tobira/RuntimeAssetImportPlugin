@@ -64,7 +64,8 @@ public:
 	 *                                      create materials for the imported
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned procedural mesh
-	 *                                      component and its descendant.
+	 *                                      component, its descendant and its
+	 *                                      material instance.
 	 * @param[out]   ConstructProceduralMeshComponentFromAssetFileResult
 	 *                  Result of the execution.
 	 * @param   ShouldReplicate             Whether the component should be
@@ -106,7 +107,8 @@ public:
 	 *                                      create materials for the imported
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned static mesh
-	 *                                      component and its descendant.
+	 *                                      component, its descendant and its
+	 *                                      material instance.
 	 * @param[out]   ConstructStaticMeshComponentFromAssetFileResult
 	 *                  Result of the execution.
 	 * @param   ShouldReplicate             Whether the component should be
@@ -139,7 +141,8 @@ public:
 	 *                                      create materials for the imported
 	 *                                      meshes.
 	 * @param   Owner                       Owner of the returned dynamic mesh
-	 *                                      component and its descendant.
+	 *                                      component, its descendant and its
+	 *                                      material instance.
 	 * @param[out]   ConstructDynamicMeshComponentFromAssetFileResult
 	 *                  Result of the execution.
 	 * @param   ShouldReplicate             Whether the component should be
