@@ -192,6 +192,9 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 		// set RelativeTransform
 		MeshComponent->SetRelativeTransform(Node.RelativeTransform);
 
+		// make MeshComponent network addressable
+		MeshComponent->SetNetAddressable();
+
 		// get reference of the sections
 		const auto& Sections = Node.Sections;
 
