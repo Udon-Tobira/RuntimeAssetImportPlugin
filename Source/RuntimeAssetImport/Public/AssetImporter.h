@@ -5,9 +5,23 @@
 #include "Components/DynamicMeshComponent.h"
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "LoadedMeshData.h"
 #include "ProceduralMeshComponent.h"
 
 #include "AssetImporter.generated.h"
+
+/**
+ * Type representing the result of executing
+ * LoadMeshFromAssetFileResult function.
+ */
+UENUM(BlueprintType)
+enum class ELoadMeshFromAssetFileResult : uint8 {
+	/* Success to load */
+	Success,
+
+	/* Failed to load scene */
+	Failure
+};
 
 /**
  * Type representing the result of executing
@@ -54,6 +68,53 @@ enum class EConstructDynamicMeshComponentFromAssetFileResult : uint8 {
 UCLASS()
 class RUNTIMEASSETIMPORT_API UAssetImporter: public UBlueprintFunctionLibrary {
 	GENERATED_BODY()
+
+public:
+	/**
+	 * Load mesh from the specified asset file. The file format must be one
+	 * supported by assimp.
+	 * @param        FilePath   Path to the asset file.
+	 * @param[out]   LoadMeshFromAssetFileResult Result of the execution.
+	 * @return  If the result is Success, the return value is valid,
+	 *          If the result is Failure, the return value is empty
+	 *          (default-constructed).
+	 */
+	UFUNCTION(BlueprintCallable,
+	          meta = (ExpandEnumAsExecs = "LoadMeshFromAssetFileResult"))
+	static UPARAM(DisplayName = "Mesh Data") FLoadedMeshData
+	    LoadMeshFromAssetFile(
+	        const FString&                FilePath,
+	        ELoadMeshFromAssetFileResult& LoadMeshFromAssetFileResult);
+
+	/**
+	 * Construct structured Procedural Mesh Component from the mesh data.
+	 * @param   MeshData                    mesh data
+	 * @param   ParentMaterialInterface     The base material interface used to
+	 *                                      create materials for the imported
+	 *                                      meshes.
+	 * @param   Owner                       Owner of the returned procedural mesh
+	 *                                      component, its descendant and its
+	 *                                      material instance.
+	 * @param   ShouldRegisterComponentToOwner    Whether to register components
+	 *                                            to Owner. Must be turned ON to
+	 *                                            be reflected in the scene.
+	 * @return  This function returns the root of the constructed Procedural Mesh
+	 *          Components.
+	 * @details  If you have no particular preference, use the
+	 *           ConstructDynamicMeshComponentFromMeshData function (Not
+	 *           implemented yet, but will be). In multiplayer, when a client and
+	 *           server each create a mesh by this function and the client walks
+	 *           on it, there occurs a bug that prevents normal movement with a
+	 *           warning "LogNetPackageMap: Warning:
+	 *           UPackageMapClient::InternalLoadObject: Unable to resolve default
+	 *           guid from client".
+	 */
+	UFUNCTION(BlueprintCallable)
+	static UPARAM(DisplayName = "Root Procedural Mesh Component")
+	    UProceduralMeshComponent* ConstructProceduralMeshComponentFromMeshData(
+	        const FLoadedMeshData& MeshData,
+	        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
+	        bool ShouldRegisterComponentToOwner = true);
 
 public:
 	/**

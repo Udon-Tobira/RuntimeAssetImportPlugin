@@ -23,7 +23,7 @@
 		{
 			"Name": "RuntimeAssetImport",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "PreDefault"
 		}
 	],
 	"Plugins": [

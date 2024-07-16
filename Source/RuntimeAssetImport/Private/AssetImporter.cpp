@@ -56,6 +56,26 @@ static TArray<UMaterialInstanceDynamic*>
                               UMaterialInterface& ParentMaterialInterface);
 
 /**
+ * Generate material datas from Ai(Assimp) Scene object.
+ * @param AiScene Ai(Assimp) Scene
+ */
+static TArray<FLoadedMaterialData>
+    GenerateMaterialDatas(const aiScene& AiScene);
+
+/**
+ * Generate material instances from array of material datas.
+ * @param Owner Owner of the material instances
+ * @param MaterialDatas array of material datas
+ * @param ParentMaterialInterface Parent MaterialInterface from which
+ *                                the material instance was created
+ * @return array of the material instances
+ */
+static TArray<UMaterialInstanceDynamic*>
+    GenerateMaterialInstances(AActor&                            Owner,
+                              const TArray<FLoadedMaterialData>& MaterialDatas,
+                              UMaterialInterface& ParentMaterialInterface);
+
+/**
  * Verify the specified material has the specified parameter.
  * Unreal "verifyf" macro is used for verifying.
  * @param   MaterialInterface       material interface to check for the presence
@@ -67,6 +87,17 @@ static void
     VerifyMaterialParameter(const UMaterialInterface&     MaterialInterface,
                             const EMaterialParameterType& MaterialParameterType,
                             const FName&                  ParameterName);
+
+/**
+ * Construct mesh data recursively from the AiNode
+ * @param        AiScene           assimp's scene object.
+ * @param        AiNode            assimp's node object to start treeing.
+ * @param[out]   MeshData          constructed mesh data
+ * @param        ParentNodeIndex   index of the parent node.
+ *                                 if AiNode is the root node, specify -1.
+ */
+static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
+                              FLoadedMeshData& MeshData, int ParentNodeIndex);
 
 /**
  * Construct ProceduralMeshComponent tree recursively from the AiNode
@@ -131,6 +162,154 @@ static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
     UProceduralMeshComponent& ProceduralMeshComponentNode, AActor& Owner,
     bool ShouldReplicate, bool ShouldRegisterComponentToOwner);
 #pragma endregion
+
+FLoadedMeshData UAssetImporter::LoadMeshFromAssetFile(
+    const FString&                FilePath,
+    ELoadMeshFromAssetFileResult& LoadMeshFromAssetFileResult) {
+	// construct Ai(Assimp) Importer
+	Assimp::Importer AiImporter;
+
+	// load AiScene
+	const auto& AiScene = LoadAiScene(AiImporter, FilePath);
+
+	// When a scene fails to load
+	if (nullptr == AiScene) {
+		// assume the result is failure
+		LoadMeshFromAssetFileResult = ELoadMeshFromAssetFileResult::Failure;
+
+		// return empty mesh data
+		return {};
+	}
+
+	// Transform the coordinate system of Ai(Assimp) Scene to the UE coordinate
+	// system.
+	TransformToUECoordinateSystem(*AiScene);
+
+	// output mesh data
+	FLoadedMeshData MeshData;
+
+	// make a list of materials
+	MeshData.MaterialList = GenerateMaterialDatas(*AiScene);
+
+	// construct mesh data from Root Node
+	ConstructMeshData(*AiScene, *AiScene->mRootNode, /*out*/ MeshData, -1);
+
+	// return mesh data
+	return MeshData;
+}
+
+UProceduralMeshComponent*
+    UAssetImporter::ConstructProceduralMeshComponentFromMeshData(
+        const FLoadedMeshData& MeshData,
+        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
+        bool ShouldRegisterComponentToOwner) {
+	// check that the NodeList in MeshData has at least one node (because there
+	// must be a root node)
+	check(!MeshData.NodeList.IsEmpty());
+
+	// check to Owner is properly set
+	check(Owner != nullptr);
+
+	// get node list
+	const auto& NodeList = MeshData.NodeList;
+
+	// number of the NodeList
+	const auto& NumNodeList = NodeList.Num();
+
+	// list of procedural mesh components to be made
+	TArray<UProceduralMeshComponent*> ProceduralMeshComponentList;
+	ProceduralMeshComponentList.AddUninitialized(NumNodeList);
+
+	// get material datas
+	const auto& MaterialDatas = MeshData.MaterialList;
+
+	// generate material instances
+	const auto& MaterialInstances = GenerateMaterialInstances(
+	    *Owner, MaterialDatas, *ParentMaterialInterface);
+
+	// construct Procedural Mesh Component Tree
+	for (auto Node_i = decltype(NumNodeList){0}; Node_i < NumNodeList; ++Node_i) {
+		// get reference of the node
+		const auto& Node = NodeList[Node_i];
+
+		// new ProceduralMeshComponent
+		const auto& ProcMeshComp = NewObject<UProceduralMeshComponent>(Owner);
+
+		// set RelativeTransform
+		ProcMeshComp->SetRelativeTransform(Node.RelativeTransform);
+
+		// get reference of the sections
+		const auto& Sections = Node.Sections;
+
+		// get number of sections
+		const auto& NumSections = Sections.Num();
+
+		// create mesh sections
+		for (auto Section_i = decltype(NumSections){0}; Section_i < NumSections;
+		     ++Section_i) {
+			// get reference of the section
+			const auto& Section = Sections[Section_i];
+
+			// CreateCollision parameter
+			constexpr auto CreateCollision = true;
+
+			// bSRGBCConversion parameter
+			constexpr auto bSRGBCConversion = false;
+
+			// create mesh section
+			ProcMeshComp->CreateMeshSection_LinearColor(
+			    Section_i, Section.Vertices, Section.Triangles, Section.Normals,
+			    Section.UV0Channel, Section.VertexColors0, Section.Tangents,
+			    CreateCollision, bSRGBCConversion);
+
+			// set Material
+			const auto& MaterialIndex    = Section.MaterialIndex;
+			const auto& MaterialInstance = MaterialInstances[MaterialIndex];
+			ProcMeshComp->SetMaterial(Section_i, MaterialInstance);
+		}
+
+		// get parent node index
+		const auto& ParentNodeIndex = Node.ParentNodeIndex;
+
+		// if creating a root node
+		if (0 == Node_i) {
+			if (ShouldRegisterComponentToOwner) {
+				// register root to owning actor (Owner) to reflect in the unreal's
+				// scene
+				ProcMeshComp->RegisterComponent();
+			}
+		}
+		// if creating a non-root node
+		else {
+			// get parent Procedural Mesh Component
+			const auto& ParentProcMeshComp =
+			    ProceduralMeshComponentList[ParentNodeIndex];
+
+			// if ShouldRegisterComponentToOwner is ON
+			if (ShouldRegisterComponentToOwner) {
+				// Setup of attachment of this component to parent component
+				ProcMeshComp->SetupAttachment(ParentProcMeshComp);
+
+				// register component to owning actor (Owner) to reflect in the unreal's
+				// scene
+				ProcMeshComp->RegisterComponent();
+			}
+			// if ShouldRegisterComponentToOwner is OFF
+			else {
+				// attach this component to parent component
+				ProcMeshComp->AttachToComponent(
+				    ParentProcMeshComp,
+				    FAttachmentTransformRules::KeepRelativeTransform);
+			}
+		}
+
+		// set created Procedural Mesh Component
+		ProceduralMeshComponentList[Node_i] = ProcMeshComp;
+	}
+
+	// return root ProceduralMeshComponent of ProceduralMeshComponentTree
+	return ProceduralMeshComponentList[0];
+}
 
 UProceduralMeshComponent*
     UAssetImporter::ConstructProceduralMeshComponentFromAssetFile(
@@ -510,6 +689,180 @@ static TArray<UMaterialInstanceDynamic*>
 	return MaterialInstances;
 }
 
+static TArray<FLoadedMaterialData>
+    GenerateMaterialDatas(const aiScene& AiScene) {
+	TArray<FLoadedMaterialData> MaterialList;
+	const auto&                 NumMaterials = AiScene.mNumMaterials;
+	MaterialList.AddDefaulted(NumMaterials);
+
+	if (0 == NumMaterials) {
+		UE_LOG(LogAssetImporter, Warning, TEXT("There is no Materials."));
+	}
+	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
+		// get reference of the material
+		auto& MaterialData = MaterialList[i];
+
+		// get ai(assimp) material
+		const auto& AiMaterial = AiScene.mMaterials[i];
+
+		// get number of textures
+		const auto& NumTexture = AiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+
+		// maybe, in case Vector4D Color is set
+		if (0 == NumTexture) {
+			// log that no texture is found
+			UE_LOG(LogAssetImporter, Log,
+			       TEXT("No texture is found for material in index %d"), i);
+
+			aiColor4D   AiDiffuse;
+			const auto& GetDiffuseResult =
+			    AiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, AiDiffuse);
+			switch (GetDiffuseResult) {
+			case aiReturn_FAILURE:
+				UE_LOG(LogAssetImporter, Warning,
+				       TEXT("No color is set for material in index %d"), i);
+				break;
+			case aiReturn_OUTOFMEMORY:
+				UE_LOG(LogAssetImporter, Warning,
+				       TEXT("Color couldn't get due to out of memory"));
+				break;
+			default:
+				verifyf(aiReturn_SUCCESS == GetDiffuseResult,
+				        TEXT("Bug. GetDiffuseResult should be aiReturn_SUCCESS."));
+
+				MaterialData.Color =
+				    FLinearColor{AiDiffuse.r, AiDiffuse.g, AiDiffuse.b, AiDiffuse.a};
+				break;
+			}
+		}
+		// if texture is set
+		else {
+			verifyf(NumTexture == 1,
+			        TEXT("Currently, only one texture is supported "
+			             "for diffuse (%d textures are found for material in "
+			             "index %d)"),
+			        NumTexture, i);
+
+			aiString    AiTexture0Path;
+			const auto& AiGetTextureResult = AiMaterial->Get(
+			    AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), AiTexture0Path);
+			switch (AiGetTextureResult) {
+			case aiReturn_FAILURE:
+				UE_LOG(LogAssetImporter, Warning,
+				       TEXT("Failed to get texture for material in index %d"), i);
+				break;
+			case aiReturn_OUTOFMEMORY:
+				UE_LOG(LogAssetImporter, Warning,
+				       TEXT("Failed to get texture due to out of memory"));
+				break;
+			default:
+				verifyf(aiReturn_SUCCESS == AiGetTextureResult,
+				        TEXT("Bug. AiGetTextureResult should be aiReturn_SUCCESS."));
+				const auto& AiTexture0 =
+				    AiScene.GetEmbeddedTexture(AiTexture0Path.C_Str());
+
+				if (nullptr == AiTexture0) {
+					// TODO: load from file
+					UE_LOG(LogAssetImporter, Error,
+					       TEXT("Texture %hs is not embedded in the file and "
+					            "cannot be read."),
+					       AiTexture0Path.C_Str());
+				} else {
+					// get width and height
+					const auto& Width  = AiTexture0->mWidth;
+					const auto& Height = AiTexture0->mHeight;
+
+					// if NOT compressed data
+					if (Height != 0) {
+						TArray64<uint8> CompressedTextureData;
+
+						FImageView ImageView(AiTexture0->pcData, Width, Height,
+						                     ERawImageFormat::BGRA8);
+						FImageUtils::CompressImage(CompressedTextureData, TEXT("png"),
+						                           ImageView);
+
+						MaterialData.CompressedTextureData =
+						    MoveTemp(CompressedTextureData);
+					}
+					// if compressed data
+					else {
+						// when AiTexture0 is compressed
+						const auto& Size = AiTexture0->mWidth;
+						const auto& SeqData =
+						    reinterpret_cast<const uint8*>(AiTexture0->pcData);
+
+						MaterialData.CompressedTextureData =
+						    decltype(MaterialData.CompressedTextureData)(SeqData, Size);
+					}
+					MaterialData.HasTexture = true;
+				}
+
+				break;
+			}
+		}
+
+		MaterialList[i] = MaterialData;
+	}
+
+	return MaterialList;
+}
+
+TArray<UMaterialInstanceDynamic*>
+    GenerateMaterialInstances(AActor&                            Owner,
+                              const TArray<FLoadedMaterialData>& MaterialDatas,
+                              UMaterialInterface& ParentMaterialInterface) {
+	TArray<UMaterialInstanceDynamic*> MaterialInstances;
+	const auto&                       NumMaterials = MaterialDatas.Num();
+	MaterialInstances.AddUninitialized(NumMaterials);
+
+	if (0 == NumMaterials) {
+		UE_LOG(LogAssetImporter, Warning, TEXT("There is no Materials."));
+	}
+	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
+		// create material
+		UMaterialInstanceDynamic* MaterialInstance =
+		    UMaterialInstanceDynamic::Create(&ParentMaterialInterface, &Owner);
+
+		const auto& MaterialData = MaterialDatas[i];
+
+		// in case Color is set (no texture)
+		if (!MaterialData.HasTexture) {
+			// log that no texture is found
+			UE_LOG(LogAssetImporter, Log,
+			       TEXT("No texture is found for material in index %d"), i);
+
+			VerifyMaterialParameter(ParentMaterialInterface,
+			                        EMaterialParameterType::Vector, "BaseColor4");
+
+			// get color
+			const auto& Color = MaterialData.Color;
+
+			// set color
+			MaterialInstance->SetVectorParameterValue("BaseColor4", Color);
+		}
+		// if texture is set
+		else {
+			// get compressed texture data
+			const auto& CompressedTextureData = MaterialData.CompressedTextureData;
+
+			// get texture
+			UTexture2D* Texture0 =
+			    FImageUtils::ImportBufferAsTexture2D(CompressedTextureData);
+
+			VerifyMaterialParameter(ParentMaterialInterface,
+			                        EMaterialParameterType::Texture,
+			                        "BaseColorTexture");
+
+			// set texture
+			MaterialInstance->SetTextureParameterValue("BaseColorTexture", Texture0);
+		}
+
+		MaterialInstances[i] = MaterialInstance;
+	}
+
+	return MaterialInstances;
+}
+
 static void
     VerifyMaterialParameter(const UMaterialInterface&     MaterialInterface,
                             const EMaterialParameterType& MaterialParameterType,
@@ -526,6 +879,220 @@ static void
 	// verify
 	verifyf(ParameterExists, TEXT("Material %s doesn't have %s parameter."),
 	        *MaterialInterface.GetFName().ToString(), *ParameterName.ToString());
+}
+
+static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
+                              FLoadedMeshData& MeshData, int ParentNodeIndex) {
+	// create node
+	FLoadedMeshNode Node;
+
+	// set index of parent node
+	Node.ParentNodeIndex = ParentNodeIndex;
+
+	// get/set node name
+	const auto& AiNodeName = AiNode.mName;
+	Node.Name              = AiNodeName.C_Str();
+
+	// get/set RelativeTransform
+	const auto& AiTransformMatrix = AiNode.mTransformation;
+	Node.RelativeTransform =
+	    static_cast<FTransform>(AiMatrixToUEMatrix(AiTransformMatrix));
+
+	// get number of mesh sections
+	const auto& NumMeshes = AiNode.mNumMeshes;
+
+	// reserve capacity of array
+	Node.Sections.AddDefaulted(NumMeshes);
+
+	// for each sections
+	for (auto i = decltype(NumMeshes){0}; i < NumMeshes; ++i) {
+		// get assimp mesh
+		const auto& AiMeshIndex = AiNode.mMeshes[i];
+		const auto& AiMesh      = AiScene.mMeshes[AiMeshIndex];
+
+		// get reference of the section
+		auto& Section = Node.Sections[i];
+
+		// convert to unreal Vertex format
+		Section.Vertices = [&AiMesh]() {
+			TArray<FVector> Vertices;
+			const auto&     NumVertices = AiMesh->mNumVertices;
+			Vertices.AddUninitialized(NumVertices);
+			const auto& AiVertices = AiMesh->mVertices;
+
+			if (!AiMesh->HasPositions()) {
+				UE_LOG(LogAssetImporter, Warning, TEXT("There is no Vertices."));
+			} else {
+				check(NumVertices > 0 && AiVertices != nullptr);
+				for (auto i = decltype(NumVertices){0}; i < NumVertices; ++i) {
+					const auto& AiVertex = AiVertices[i];
+					Vertices[i]          = {AiVertex.x, AiVertex.y, AiVertex.z};
+				}
+			}
+
+			return Vertices;
+		}();
+
+		// convert to unreal Triangle format
+		Section.Triangles = [&AiMesh]() {
+			TArray<int32> Triangles;
+			const auto&   NumFaces = AiMesh->mNumFaces;
+			const auto&   AiFaces  = AiMesh->mFaces;
+
+			if (!AiMesh->HasFaces()) {
+				UE_LOG(LogAssetImporter, Warning, TEXT("There is no Faces."));
+			} else {
+				check(NumFaces > 0 && AiFaces != nullptr);
+
+				Triangles.AddUninitialized(NumFaces * 3);
+				for (auto i = decltype(NumFaces){0}; i < NumFaces; ++i) {
+					const auto& AiFace = AiFaces[i];
+					checkf(AiFace.mNumIndices == 3,
+					       TEXT("Each face must be triangular."));
+
+					for (int_fast8_t triangle_i = 0; triangle_i < 3; ++triangle_i) {
+						Triangles[3 * i + triangle_i] = AiFace.mIndices[triangle_i];
+					}
+				}
+			}
+
+			return Triangles;
+		}();
+
+		// convert to unreal Normal format
+		Section.Normals = [&AiMesh]() {
+			TArray<FVector> Normals;
+			const auto&     NumNormals =
+			    AiMesh->mNumVertices; // num of Normals == num of Vertices
+			Normals.AddUninitialized(NumNormals);
+			const auto& AiNormals = AiMesh->mNormals;
+
+			if (!AiMesh->HasNormals()) {
+				UE_LOG(LogAssetImporter, Log, TEXT("There is no Normal datas."));
+			} else {
+				check(NumNormals > 0 && AiNormals != nullptr);
+				for (auto i = decltype(NumNormals){0}; i < NumNormals; ++i) {
+					const auto& AiNormal = AiNormals[i];
+					Normals[i]           = {AiNormal.x, AiNormal.y, AiNormal.z};
+				}
+			}
+
+			return Normals;
+		}();
+
+		// convert to unreal UV0 format
+		Section.UV0Channel = [&AiMesh]() {
+			TArray<FVector2D> UV0Channel;
+			const auto&       NumVertices = AiMesh->mNumVertices;
+			UV0Channel.AddUninitialized(NumVertices);
+			const auto& AiUVChannels = AiMesh->mTextureCoords;
+
+			const auto& NumUVChannels = AiMesh->GetNumUVChannels();
+
+			// if there is no UV Channels
+			if (!AiMesh->HasTextureCoords(0)) {
+				// log
+				UE_LOG(LogAssetImporter, Log, TEXT("There is no UV channels."));
+			} else {
+				check(NumUVChannels > 0 && AiUVChannels != nullptr);
+				ensureMsgf(1 == NumUVChannels,
+				           TEXT("Currently only 1 UV channel is supported."));
+
+				const auto& AiUV0Channel = AiUVChannels[0];
+				if (0 == NumVertices || nullptr == AiUV0Channel) {
+					check(0 == NumVertices && nullptr == AiUV0Channel);
+					// log
+					UE_LOG(LogAssetImporter, Log,
+					       TEXT("The first UV channel exists but there is no vertex or "
+					            "channel "
+					            "data."));
+				} else {
+					for (auto i = decltype(NumVertices){0}; i < NumVertices; ++i) {
+						const auto& AiUV0 = AiUV0Channel[i];
+						UV0Channel[i]     = {AiUV0.x, AiUV0.y};
+					}
+				}
+			}
+
+			return UV0Channel;
+		}();
+
+		// convert to unreal Vertex Color format
+		Section.VertexColors0 = [&AiMesh]() {
+			TArray<FLinearColor> VertexColors0;
+			const auto&          NumVertices = AiMesh->mNumVertices;
+			VertexColors0.AddUninitialized(NumVertices);
+			const auto& AiVertexColors = AiMesh->mColors;
+
+			const auto& NumVertexColorChannels = AiMesh->GetNumColorChannels();
+
+			// if there is no Vertex Color Channels
+			if (!AiMesh->HasVertexColors(0)) {
+				// log
+				UE_LOG(LogAssetImporter, Log,
+				       TEXT("There is no Vertex Color channels."));
+			} else {
+				check(NumVertexColorChannels > 0 && AiVertexColors != nullptr);
+				ensureMsgf(1 == NumVertexColorChannels,
+				           TEXT("Currently only 1 Vertex Color channel is supported."));
+
+				const auto& AiVertexColors0 = AiVertexColors[0];
+				if (0 == NumVertices || nullptr == AiVertexColors0) {
+					check(0 == NumVertices && nullptr == AiVertexColors0);
+					// log
+					UE_LOG(LogAssetImporter, Log,
+					       TEXT("The first Vertex Color channel exists but there is no "
+					            "vertex or "
+					            "channel data."));
+				} else {
+					for (auto i = decltype(NumVertices){0}; i < NumVertices; ++i) {
+						const auto& AiVertexColor = AiVertexColors0[i];
+						VertexColors0[i]          = {AiVertexColor.r, AiVertexColor.g,
+						                             AiVertexColor.b, AiVertexColor.a};
+					}
+				}
+			}
+
+			return VertexColors0;
+		}();
+
+		// convert to unreal Tangent format
+		Section.Tangents = [&AiMesh]() {
+			TArray<FProcMeshTangent> Tangents;
+			const auto&              NumTangents =
+			    AiMesh->mNumVertices; // num of Tangents == num of Vertices
+			Tangents.AddUninitialized(NumTangents);
+			const auto& AiTangents = AiMesh->mTangents;
+
+			if (!AiMesh->HasTangentsAndBitangents()) {
+				UE_LOG(LogAssetImporter, Log, TEXT("There is no Tangent datas."));
+			} else {
+				check(NumTangents > 0 && AiTangents != nullptr);
+				for (auto i = decltype(NumTangents){0}; i < NumTangents; ++i) {
+					const auto& AiTangent = AiTangents[i];
+					Tangents[i]           = {AiTangent.x, AiTangent.y, AiTangent.z};
+				}
+			}
+
+			return Tangents;
+		}();
+
+		// set Material
+		Section.MaterialIndex = AiMesh->mMaterialIndex;
+	}
+
+	// add node to node list (MeshData.NodeList)
+	MeshData.NodeList.Add(MoveTemp(Node));
+
+	// Recursively add children's mesh nodes
+	const auto& NumChildren = AiNode.mNumChildren;
+	for (auto i = decltype(NumChildren){0}; i < NumChildren; ++i) {
+		// get assimp child Node
+		const auto& AiChildNode = *AiNode.mChildren[i];
+
+		// construct mesh data
+		ConstructMeshData(AiScene, AiChildNode, MeshData, ParentNodeIndex + 1);
+	}
 }
 
 static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
