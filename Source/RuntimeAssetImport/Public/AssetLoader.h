@@ -25,7 +25,7 @@ enum class ELoadMeshFromAssetFileResult : uint8 {
  * Blueprint Function Library for easy loading of assets at runtime.
  */
 UCLASS()
-class RUNTIMEASSETIMPORT_API UAssetImporter: public UBlueprintFunctionLibrary {
+class RUNTIMEASSETIMPORT_API UAssetLoader: public UBlueprintFunctionLibrary {
 	GENERATED_BODY()
 
 public:

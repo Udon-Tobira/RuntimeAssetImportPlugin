@@ -69,7 +69,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 static FMatrix AiMatrixToUEMatrix(const aiMatrix4x4& AiMatrix4x4);
 #pragma endregion
 
-FLoadedMeshData UAssetImporter::LoadMeshFromAssetFile(
+FLoadedMeshData UAssetLoader::LoadMeshFromAssetFile(
     const FString&                FilePath,
     ELoadMeshFromAssetFileResult& LoadMeshFromAssetFileResult) {
 	// construct Ai(Assimp) Importer
