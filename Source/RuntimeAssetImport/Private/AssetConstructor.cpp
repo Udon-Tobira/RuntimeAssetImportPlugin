@@ -161,9 +161,9 @@ static void
  */
 template <typename MeshComponentT>
 static MeshComponentT* ConstructMeshComponentFromMeshData(
-    const FLoadedMeshData& MeshData,
-    UMaterialInterface* ParentMaterialInterface, AActor* Owner,
-    bool ShouldRegisterComponentToOwner) {
+    const FLoadedMeshData&    MeshData,
+    UMaterialInterface* const ParentMaterialInterface, AActor* const Owner,
+    const bool ShouldRegisterComponentToOwner) {
 	// check that the NodeList in MeshData has at least one node (because there
 	// must be a root node)
 	check(!MeshData.NodeList.IsEmpty());
