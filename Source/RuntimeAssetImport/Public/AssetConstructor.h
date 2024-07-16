@@ -88,6 +88,28 @@ public:
 	        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
 	        bool ShouldRegisterComponentToOwner = true);
 
+	/**
+	 * Construct structured Static Mesh Component from the mesh data.
+	 * @param   MeshData                    mesh data
+	 * @param   ParentMaterialInterface     The base material interface used to
+	 *                                      create materials for the constructed
+	 *                                      meshes.
+	 * @param   Owner                       Owner of the returned procedural mesh
+	 *                                      component, its descendants and its
+	 *                                      material instances.
+	 * @param   ShouldRegisterComponentToOwner    Whether to register components
+	 *                                            to Owner. Must be turned ON to
+	 *                                            be reflected in the scene.
+	 * @return  This function returns the root of the constructed Static Mesh
+	 *          Components.
+	 * @details  If you have no particular preference, use the
+	 *           ConstructDynamicMeshComponentFromMeshData function (Not
+	 *           implemented yet, but will be).
+	 *           In the absence of an editor, such as a packaged game, the
+	 *           material disappears and a checkerboard appears. And it will no
+	 *           longer collide with the player. (I have not investigated whether
+	 *           collisions had been eliminated)
+	 */
 	UFUNCTION(BlueprintCallable)
 	static UPARAM(DisplayName = "Root Static Mesh Component")
 	    UStaticMeshComponent* ConstructStaticMeshComponentFromMeshData(
