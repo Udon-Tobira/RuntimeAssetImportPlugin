@@ -42,36 +42,11 @@ static float GetAiUnitScaleFactor(const aiScene& AiScene);
 static aiMatrix4x4t<float> GenerateAi_UE_XformMatrix(const aiScene& AiScene);
 
 /**
- * Generate material instances from Ai(Assimp) Scene object.
- * @param Owner Owner of the material instances
- * @param AiScene Ai(Assimp) Scene
- * @param ParentMaterialInterface Parent MaterialInterface from which
- *                                the material instance was created
- * @return array of the material instances
- */
-static TArray<UMaterialInstanceDynamic*>
-    GenerateMaterialInstances(AActor& Owner, const aiScene& AiScene,
-                              UMaterialInterface& ParentMaterialInterface);
-
-/**
  * Generate material datas from Ai(Assimp) Scene object.
  * @param AiScene Ai(Assimp) Scene
  */
 static TArray<FLoadedMaterialData>
     GenerateMaterialDatas(const aiScene& AiScene);
-
-/**
- * Verify the specified material has the specified parameter.
- * Unreal "verifyf" macro is used for verifying.
- * @param   MaterialInterface       material interface to check for the presence
- *                                  of parameter
- * @param   MaterialParameterType   type of parameter to be verified
- * @param   ParameterName           name of parameter to be verified
- */
-static void
-    VerifyMaterialParameter(const UMaterialInterface&     MaterialInterface,
-                            const EMaterialParameterType& MaterialParameterType,
-                            const FName&                  ParameterName);
 
 /**
  * Construct mesh data recursively from the AiNode
@@ -199,158 +174,6 @@ static aiMatrix4x4t<float> GenerateAi_UE_XformMatrix(const aiScene& AiScene) {
 	return Scale_Ai_UE * Rot_AiYUp_UEZUp;
 }
 
-static TArray<UMaterialInstanceDynamic*>
-    GenerateMaterialInstances(AActor& Owner, const aiScene& AiScene,
-                              UMaterialInterface& ParentMaterialInterface) {
-	TArray<UMaterialInstanceDynamic*> MaterialInstances;
-	const auto&                       NumMaterials = AiScene.mNumMaterials;
-	MaterialInstances.AddUninitialized(NumMaterials);
-
-	if (0 == NumMaterials) {
-		UE_LOG(LogAssetLoader, Warning, TEXT("There is no Materials."));
-	}
-	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
-		// create material
-		UMaterialInstanceDynamic* MaterialInstance =
-		    UMaterialInstanceDynamic::Create(&ParentMaterialInterface, &Owner);
-
-		const auto& AiMaterial = AiScene.mMaterials[i];
-		const auto& NumTexture = AiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-
-		// maybe, in case Vector4D Color is set
-		if (0 == NumTexture) {
-			// log that no texture is found
-			UE_LOG(LogAssetLoader, Log,
-			       TEXT("No texture is found for material in index %d"), i);
-
-			aiColor4D   AiDiffuse;
-			const auto& GetDiffuseResult =
-			    AiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, AiDiffuse);
-			switch (GetDiffuseResult) {
-			case aiReturn_FAILURE:
-				UE_LOG(LogAssetLoader, Warning,
-				       TEXT("No color is set for material in index %d"), i);
-				break;
-			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetLoader, Warning,
-				       TEXT("Color couldn't get due to out of memory"));
-				break;
-			default:
-				verifyf(aiReturn_SUCCESS == GetDiffuseResult,
-				        TEXT("Bug. GetDiffuseResult should be aiReturn_SUCCESS."));
-
-				VerifyMaterialParameter(ParentMaterialInterface,
-				                        EMaterialParameterType::Vector, "BaseColor4");
-
-				MaterialInstance->SetVectorParameterValue(
-				    "BaseColor4",
-				    FLinearColor{AiDiffuse.r, AiDiffuse.g, AiDiffuse.b, AiDiffuse.a});
-				break;
-			}
-		}
-		// if texture is set
-		else {
-			verifyf(NumTexture == 1,
-			        TEXT("Currently, only one texture is supported "
-			             "for diffuse (%d textures are found for material in "
-			             "index %d)"),
-			        NumTexture, i);
-
-			aiString    AiTexture0Path;
-			const auto& AiGetTextureResult = AiMaterial->Get(
-			    AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), AiTexture0Path);
-			switch (AiGetTextureResult) {
-			case aiReturn_FAILURE:
-				UE_LOG(LogAssetLoader, Warning,
-				       TEXT("Failed to get texture for material in index %d"), i);
-				break;
-			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetLoader, Warning,
-				       TEXT("Failed to get texture due to out of memory"));
-				break;
-			default:
-				verifyf(aiReturn_SUCCESS == AiGetTextureResult,
-				        TEXT("Bug. AiGetTextureResult should be aiReturn_SUCCESS."));
-				const auto& AiTexture0 =
-				    AiScene.GetEmbeddedTexture(AiTexture0Path.C_Str());
-
-				if (nullptr == AiTexture0) {
-					// TODO: load from file
-					UE_LOG(LogAssetLoader, Error,
-					       TEXT("Texture %hs is not embedded in the file and "
-					            "cannot be read."),
-					       AiTexture0Path.C_Str());
-				} else {
-					const auto& Texture0 = [&AiTexture0]() {
-						UTexture2D* Texture;
-
-						const auto& Width  = AiTexture0->mWidth;
-						const auto& Height = AiTexture0->mHeight;
-
-						// if NOT compressed data
-						if (Height != 0) {
-							Texture = UTexture2D::CreateTransient(Width, Height, PF_B8G8R8A8);
-
-							if (Texture) {
-								Texture->bNotOfflineProcessed = true;
-
-								FTexturePlatformData* PlatformData =
-#if ENGINE_MAJOR_VERSION > 4
-								    Texture->GetPlatformData()
-#else
-								    Texture->PlatformData;
-#endif
-								    ;
-
-								auto& TextureMip = PlatformData->Mips[0];
-								auto& BulkData   = TextureMip.BulkData;
-								auto* MipData    = BulkData.Lock(LOCK_READ_WRITE);
-								FMemory::Memcpy(MipData, AiTexture0->pcData,
-								                BulkData.GetBulkDataSize());
-
-								BulkData.Unlock();
-
-								Texture->UpdateResource();
-							}
-						} else {
-							// when AiTexture0 is compressed
-							const auto& Size = AiTexture0->mWidth;
-							const auto& SeqData =
-							    reinterpret_cast<const uint8*>(AiTexture0->pcData);
-							const TArrayView64<const uint8> BufferView(SeqData, Size);
-
-							Texture = FImageUtils::ImportBufferAsTexture2D(BufferView);
-						}
-
-						// if (Texture && bIsNormalMap) {
-						//  Texture->CompressionSettings = TC_Normalmap;
-						//  Texture->SRGB                = false;
-						//  Texture->UpdateResource();
-						//}
-
-						return Texture;
-					}();
-					VerifyMaterialParameter(ParentMaterialInterface,
-					                        EMaterialParameterType::Texture,
-					                        "BaseColorTexture");
-
-					MaterialInstance->SetTextureParameterValue("BaseColorTexture",
-					                                           Texture0);
-				}
-
-				break;
-			}
-#if 0
-				MaterialInstance->SetScalarParameterValue("Normal", AiNormalTexture);
-#endif
-		}
-
-		MaterialInstances[i] = MaterialInstance;
-	}
-
-	return MaterialInstances;
-}
-
 static TArray<FLoadedMaterialData>
     GenerateMaterialDatas(const aiScene& AiScene) {
 	TArray<FLoadedMaterialData> MaterialList;
@@ -467,24 +290,6 @@ static TArray<FLoadedMaterialData>
 	}
 
 	return MaterialList;
-}
-
-static void
-    VerifyMaterialParameter(const UMaterialInterface&     MaterialInterface,
-                            const EMaterialParameterType& MaterialParameterType,
-                            const FName&                  ParameterName) {
-	FMemoryImageMaterialParameterInfo MemoryImageMaterialParameterInfo(
-	    ParameterName);
-	FMaterialParameterMetadata MaterialParameterMetadata;
-
-	// check if parameter exists
-	const auto& ParameterExists = MaterialInterface.GetParameterDefaultValue(
-	    MaterialParameterType, MemoryImageMaterialParameterInfo,
-	    MaterialParameterMetadata);
-
-	// verify
-	verifyf(ParameterExists, TEXT("Material %s doesn't have %s parameter."),
-	        *MaterialInterface.GetFName().ToString(), *ParameterName.ToString());
 }
 
 static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
