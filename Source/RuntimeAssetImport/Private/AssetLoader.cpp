@@ -61,19 +61,6 @@ static TArray<FLoadedMaterialData>
     GenerateMaterialDatas(const aiScene& AiScene);
 
 /**
- * Generate material instances from array of material datas.
- * @param Owner Owner of the material instances
- * @param MaterialDatas array of material datas
- * @param ParentMaterialInterface Parent MaterialInterface from which
- *                                the material instance was created
- * @return array of the material instances
- */
-static TArray<UMaterialInstanceDynamic*>
-    GenerateMaterialInstances(AActor&                            Owner,
-                              const TArray<FLoadedMaterialData>& MaterialDatas,
-                              UMaterialInterface& ParentMaterialInterface);
-
-/**
  * Verify the specified material has the specified parameter.
  * Unreal "verifyf" macro is used for verifying.
  * @param   MaterialInterface       material interface to check for the presence
@@ -480,62 +467,6 @@ static TArray<FLoadedMaterialData>
 	}
 
 	return MaterialList;
-}
-
-TArray<UMaterialInstanceDynamic*>
-    GenerateMaterialInstances(AActor&                            Owner,
-                              const TArray<FLoadedMaterialData>& MaterialDatas,
-                              UMaterialInterface& ParentMaterialInterface) {
-	TArray<UMaterialInstanceDynamic*> MaterialInstances;
-	const auto&                       NumMaterials = MaterialDatas.Num();
-	MaterialInstances.AddUninitialized(NumMaterials);
-
-	if (0 == NumMaterials) {
-		UE_LOG(LogAssetLoader, Warning, TEXT("There is no Materials."));
-	}
-	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
-		// create material
-		UMaterialInstanceDynamic* MaterialInstance =
-		    UMaterialInstanceDynamic::Create(&ParentMaterialInterface, &Owner);
-
-		const auto& MaterialData = MaterialDatas[i];
-
-		// in case Color is set (no texture)
-		if (!MaterialData.HasTexture) {
-			// log that no texture is found
-			UE_LOG(LogAssetLoader, Log,
-			       TEXT("No texture is found for material in index %d"), i);
-
-			VerifyMaterialParameter(ParentMaterialInterface,
-			                        EMaterialParameterType::Vector, "BaseColor4");
-
-			// get color
-			const auto& Color = MaterialData.Color;
-
-			// set color
-			MaterialInstance->SetVectorParameterValue("BaseColor4", Color);
-		}
-		// if texture is set
-		else {
-			// get compressed texture data
-			const auto& CompressedTextureData = MaterialData.CompressedTextureData;
-
-			// get texture
-			UTexture2D* Texture0 =
-			    FImageUtils::ImportBufferAsTexture2D(CompressedTextureData);
-
-			VerifyMaterialParameter(ParentMaterialInterface,
-			                        EMaterialParameterType::Texture,
-			                        "BaseColorTexture");
-
-			// set texture
-			MaterialInstance->SetTextureParameterValue("BaseColorTexture", Texture0);
-		}
-
-		MaterialInstances[i] = MaterialInstance;
-	}
-
-	return MaterialInstances;
 }
 
 static void
