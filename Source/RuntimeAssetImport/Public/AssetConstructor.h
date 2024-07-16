@@ -88,6 +88,13 @@ public:
 	        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
 	        bool ShouldRegisterComponentToOwner = true);
 
+	UFUNCTION(BlueprintCallable)
+	static UPARAM(DisplayName = "Root Static Mesh Component")
+	    UStaticMeshComponent* ConstructStaticMeshComponentFromMeshData(
+	        const FLoadedMeshData& MeshData,
+	        UMaterialInterface* ParentMaterialInterface, AActor* Owner,
+	        bool ShouldRegisterComponentToOwner = true);
+
 public:
 	/**
 	 * Construct structured Procedural Mesh Component from the specified asset
