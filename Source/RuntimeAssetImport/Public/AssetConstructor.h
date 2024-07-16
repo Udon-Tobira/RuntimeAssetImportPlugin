@@ -70,8 +70,7 @@ public:
 	 * @param   ShouldRegisterComponentToOwner    Whether to register components
 	 *                                            to Owner. Must be turned ON to
 	 *                                            be reflected in the scene.
-	 * @return  This function returns the root of the constructed Procedural Mesh
-	 *          Components.
+	 * @return  the root of the constructed Procedural Mesh Components.
 	 * @details  If you have no particular preference, use the
 	 *           ConstructDynamicMeshComponentFromMeshData function (Not
 	 *           implemented yet, but will be). In multiplayer, when a client and
@@ -100,8 +99,7 @@ public:
 	 * @param   ShouldRegisterComponentToOwner    Whether to register components
 	 *                                            to Owner. Must be turned ON to
 	 *                                            be reflected in the scene.
-	 * @return  This function returns the root of the constructed Static Mesh
-	 *          Components.
+	 * @return  the root of the constructed Static Mesh Components.
 	 * @details  If you have no particular preference, use the
 	 *           ConstructDynamicMeshComponentFromMeshData function (Not
 	 *           implemented yet, but will be).
