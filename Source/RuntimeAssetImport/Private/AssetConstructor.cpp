@@ -234,7 +234,7 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 			}
 		} else {
 			// create transient Procedural Mesh Component
-			const auto& SrcProcMeshComp = NewObject<UProceduralMeshComponent>();
+			const auto& SrcProcMeshComp = NewObject<UProceduralMeshComponent>(Owner);
 
 			// set RelativeTransform
 			SrcProcMeshComp->SetRelativeTransform(Node.RelativeTransform);

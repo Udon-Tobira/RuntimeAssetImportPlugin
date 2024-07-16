@@ -104,9 +104,7 @@ public:
 	 *           ConstructDynamicMeshComponentFromMeshData function (Not
 	 *           implemented yet, but will be).
 	 *           In the absence of an editor, such as a packaged game, the
-	 *           material disappears and a checkerboard appears. And it will no
-	 *           longer collide with the player. (I have not investigated whether
-	 *           collisions had been eliminated)
+	 *           material disappears and a checkerboard appears.
 	 */
 	UFUNCTION(BlueprintCallable)
 	static UPARAM(DisplayName = "Root Static Mesh Component")
