@@ -8,7 +8,7 @@
 #include "LoadedMeshData.h"
 #include "ProceduralMeshComponent.h"
 
-#include "AssetImporter.generated.h"
+#include "AssetLoader.generated.h"
 
 /**
  * Type representing the result of executing

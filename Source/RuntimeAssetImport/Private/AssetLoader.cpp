@@ -1,9 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-#include "AssetImporter.h"
+#include "AssetLoader.h"
 
 #include "ImageUtils.h"
-#include "LogAssetImporter.h"
+#include "LogAssetLoader.h"
 #include "MeshDescriptionToDynamicMesh.h"
 #include "ProceduralMeshConversion.h"
 
@@ -545,7 +545,7 @@ static TArray<UMaterialInstanceDynamic*>
 	MaterialInstances.AddUninitialized(NumMaterials);
 
 	if (0 == NumMaterials) {
-		UE_LOG(LogAssetImporter, Warning, TEXT("There is no Materials."));
+		UE_LOG(LogAssetLoader, Warning, TEXT("There is no Materials."));
 	}
 	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
 		// create material
@@ -558,7 +558,7 @@ static TArray<UMaterialInstanceDynamic*>
 		// maybe, in case Vector4D Color is set
 		if (0 == NumTexture) {
 			// log that no texture is found
-			UE_LOG(LogAssetImporter, Log,
+			UE_LOG(LogAssetLoader, Log,
 			       TEXT("No texture is found for material in index %d"), i);
 
 			aiColor4D   AiDiffuse;
@@ -566,11 +566,11 @@ static TArray<UMaterialInstanceDynamic*>
 			    AiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, AiDiffuse);
 			switch (GetDiffuseResult) {
 			case aiReturn_FAILURE:
-				UE_LOG(LogAssetImporter, Warning,
+				UE_LOG(LogAssetLoader, Warning,
 				       TEXT("No color is set for material in index %d"), i);
 				break;
 			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetImporter, Warning,
+				UE_LOG(LogAssetLoader, Warning,
 				       TEXT("Color couldn't get due to out of memory"));
 				break;
 			default:
@@ -599,11 +599,11 @@ static TArray<UMaterialInstanceDynamic*>
 			    AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), AiTexture0Path);
 			switch (AiGetTextureResult) {
 			case aiReturn_FAILURE:
-				UE_LOG(LogAssetImporter, Warning,
+				UE_LOG(LogAssetLoader, Warning,
 				       TEXT("Failed to get texture for material in index %d"), i);
 				break;
 			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetImporter, Warning,
+				UE_LOG(LogAssetLoader, Warning,
 				       TEXT("Failed to get texture due to out of memory"));
 				break;
 			default:
@@ -614,7 +614,7 @@ static TArray<UMaterialInstanceDynamic*>
 
 				if (nullptr == AiTexture0) {
 					// TODO: load from file
-					UE_LOG(LogAssetImporter, Error,
+					UE_LOG(LogAssetLoader, Error,
 					       TEXT("Texture %hs is not embedded in the file and "
 					            "cannot be read."),
 					       AiTexture0Path.C_Str());
@@ -696,7 +696,7 @@ static TArray<FLoadedMaterialData>
 	MaterialList.AddDefaulted(NumMaterials);
 
 	if (0 == NumMaterials) {
-		UE_LOG(LogAssetImporter, Warning, TEXT("There is no Materials."));
+		UE_LOG(LogAssetLoader, Warning, TEXT("There is no Materials."));
 	}
 	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
 		// get reference of the material
@@ -711,7 +711,7 @@ static TArray<FLoadedMaterialData>
 		// maybe, in case Vector4D Color is set
 		if (0 == NumTexture) {
 			// log that no texture is found
-			UE_LOG(LogAssetImporter, Log,
+			UE_LOG(LogAssetLoader, Log,
 			       TEXT("No texture is found for material in index %d"), i);
 
 			aiColor4D   AiDiffuse;
@@ -719,11 +719,11 @@ static TArray<FLoadedMaterialData>
 			    AiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, AiDiffuse);
 			switch (GetDiffuseResult) {
 			case aiReturn_FAILURE:
-				UE_LOG(LogAssetImporter, Warning,
+				UE_LOG(LogAssetLoader, Warning,
 				       TEXT("No color is set for material in index %d"), i);
 				break;
 			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetImporter, Warning,
+				UE_LOG(LogAssetLoader, Warning,
 				       TEXT("Color couldn't get due to out of memory"));
 				break;
 			default:
@@ -748,11 +748,11 @@ static TArray<FLoadedMaterialData>
 			    AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), AiTexture0Path);
 			switch (AiGetTextureResult) {
 			case aiReturn_FAILURE:
-				UE_LOG(LogAssetImporter, Warning,
+				UE_LOG(LogAssetLoader, Warning,
 				       TEXT("Failed to get texture for material in index %d"), i);
 				break;
 			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetImporter, Warning,
+				UE_LOG(LogAssetLoader, Warning,
 				       TEXT("Failed to get texture due to out of memory"));
 				break;
 			default:
@@ -763,7 +763,7 @@ static TArray<FLoadedMaterialData>
 
 				if (nullptr == AiTexture0) {
 					// TODO: load from file
-					UE_LOG(LogAssetImporter, Error,
+					UE_LOG(LogAssetLoader, Error,
 					       TEXT("Texture %hs is not embedded in the file and "
 					            "cannot be read."),
 					       AiTexture0Path.C_Str());
@@ -816,7 +816,7 @@ TArray<UMaterialInstanceDynamic*>
 	MaterialInstances.AddUninitialized(NumMaterials);
 
 	if (0 == NumMaterials) {
-		UE_LOG(LogAssetImporter, Warning, TEXT("There is no Materials."));
+		UE_LOG(LogAssetLoader, Warning, TEXT("There is no Materials."));
 	}
 	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
 		// create material
@@ -828,7 +828,7 @@ TArray<UMaterialInstanceDynamic*>
 		// in case Color is set (no texture)
 		if (!MaterialData.HasTexture) {
 			// log that no texture is found
-			UE_LOG(LogAssetImporter, Log,
+			UE_LOG(LogAssetLoader, Log,
 			       TEXT("No texture is found for material in index %d"), i);
 
 			VerifyMaterialParameter(ParentMaterialInterface,
@@ -921,7 +921,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 			const auto& AiVertices = AiMesh->mVertices;
 
 			if (!AiMesh->HasPositions()) {
-				UE_LOG(LogAssetImporter, Warning, TEXT("There is no Vertices."));
+				UE_LOG(LogAssetLoader, Warning, TEXT("There is no Vertices."));
 			} else {
 				check(NumVertices > 0 && AiVertices != nullptr);
 				for (auto i = decltype(NumVertices){0}; i < NumVertices; ++i) {
@@ -940,7 +940,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 			const auto&   AiFaces  = AiMesh->mFaces;
 
 			if (!AiMesh->HasFaces()) {
-				UE_LOG(LogAssetImporter, Warning, TEXT("There is no Faces."));
+				UE_LOG(LogAssetLoader, Warning, TEXT("There is no Faces."));
 			} else {
 				check(NumFaces > 0 && AiFaces != nullptr);
 
@@ -968,7 +968,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 			const auto& AiNormals = AiMesh->mNormals;
 
 			if (!AiMesh->HasNormals()) {
-				UE_LOG(LogAssetImporter, Log, TEXT("There is no Normal datas."));
+				UE_LOG(LogAssetLoader, Log, TEXT("There is no Normal datas."));
 			} else {
 				check(NumNormals > 0 && AiNormals != nullptr);
 				for (auto i = decltype(NumNormals){0}; i < NumNormals; ++i) {
@@ -992,7 +992,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 			// if there is no UV Channels
 			if (!AiMesh->HasTextureCoords(0)) {
 				// log
-				UE_LOG(LogAssetImporter, Log, TEXT("There is no UV channels."));
+				UE_LOG(LogAssetLoader, Log, TEXT("There is no UV channels."));
 			} else {
 				check(NumUVChannels > 0 && AiUVChannels != nullptr);
 				ensureMsgf(1 == NumUVChannels,
@@ -1002,7 +1002,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 				if (0 == NumVertices || nullptr == AiUV0Channel) {
 					check(0 == NumVertices && nullptr == AiUV0Channel);
 					// log
-					UE_LOG(LogAssetImporter, Log,
+					UE_LOG(LogAssetLoader, Log,
 					       TEXT("The first UV channel exists but there is no vertex or "
 					            "channel "
 					            "data."));
@@ -1029,8 +1029,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 			// if there is no Vertex Color Channels
 			if (!AiMesh->HasVertexColors(0)) {
 				// log
-				UE_LOG(LogAssetImporter, Log,
-				       TEXT("There is no Vertex Color channels."));
+				UE_LOG(LogAssetLoader, Log, TEXT("There is no Vertex Color channels."));
 			} else {
 				check(NumVertexColorChannels > 0 && AiVertexColors != nullptr);
 				ensureMsgf(1 == NumVertexColorChannels,
@@ -1040,7 +1039,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 				if (0 == NumVertices || nullptr == AiVertexColors0) {
 					check(0 == NumVertices && nullptr == AiVertexColors0);
 					// log
-					UE_LOG(LogAssetImporter, Log,
+					UE_LOG(LogAssetLoader, Log,
 					       TEXT("The first Vertex Color channel exists but there is no "
 					            "vertex or "
 					            "channel data."));
@@ -1065,7 +1064,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 			const auto& AiTangents = AiMesh->mTangents;
 
 			if (!AiMesh->HasTangentsAndBitangents()) {
-				UE_LOG(LogAssetImporter, Log, TEXT("There is no Tangent datas."));
+				UE_LOG(LogAssetLoader, Log, TEXT("There is no Tangent datas."));
 			} else {
 				check(NumTangents > 0 && AiTangents != nullptr);
 				for (auto i = decltype(NumTangents){0}; i < NumTangents; ++i) {
@@ -1128,7 +1127,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 			const auto& AiVertices = AiMesh->mVertices;
 
 			if (!AiMesh->HasPositions()) {
-				UE_LOG(LogAssetImporter, Warning, TEXT("There is no Vertices."));
+				UE_LOG(LogAssetLoader, Warning, TEXT("There is no Vertices."));
 			} else {
 				check(NumVertices > 0 && AiVertices != nullptr);
 				for (auto i = decltype(NumVertices){0}; i < NumVertices; ++i) {
@@ -1148,7 +1147,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 			const auto& AiFaces = AiMesh->mFaces;
 
 			if (!AiMesh->HasFaces()) {
-				UE_LOG(LogAssetImporter, Warning, TEXT("There is no Faces."));
+				UE_LOG(LogAssetLoader, Warning, TEXT("There is no Faces."));
 			} else {
 				check(NumFaces > 0 && AiFaces != nullptr);
 				for (auto i = decltype(NumFaces){0}; i < NumFaces; ++i) {
@@ -1174,7 +1173,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 			const auto& AiNormals = AiMesh->mNormals;
 
 			if (!AiMesh->HasNormals()) {
-				UE_LOG(LogAssetImporter, Log, TEXT("There is no Normal datas."));
+				UE_LOG(LogAssetLoader, Log, TEXT("There is no Normal datas."));
 			} else {
 				check(NumNormals > 0 && AiNormals != nullptr);
 				for (auto i = decltype(NumNormals){0}; i < NumNormals; ++i) {
@@ -1198,7 +1197,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 			// if there is no UV Channels
 			if (!AiMesh->HasTextureCoords(0)) {
 				// log
-				UE_LOG(LogAssetImporter, Log, TEXT("There is no UV channels."));
+				UE_LOG(LogAssetLoader, Log, TEXT("There is no UV channels."));
 			} else {
 				check(NumUVChannels > 0 && AiUVChannels != nullptr);
 				ensureMsgf(1 == NumUVChannels,
@@ -1208,7 +1207,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 				if (0 == NumVertices || nullptr == AiUV0Channel) {
 					check(0 == NumVertices && nullptr == AiUV0Channel);
 					// log
-					UE_LOG(LogAssetImporter, Log,
+					UE_LOG(LogAssetLoader, Log,
 					       TEXT("The first UV channel exists but there is no vertex or "
 					            "channel "
 					            "data."));
@@ -1235,8 +1234,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 			// if there is no Vertex Color Channels
 			if (!AiMesh->HasVertexColors(0)) {
 				// log
-				UE_LOG(LogAssetImporter, Log,
-				       TEXT("There is no Vertex Color channels."));
+				UE_LOG(LogAssetLoader, Log, TEXT("There is no Vertex Color channels."));
 			} else {
 				check(NumVertexColorChannels > 0 && AiVertexColors != nullptr);
 				ensureMsgf(1 == NumVertexColorChannels,
@@ -1246,7 +1244,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 				if (0 == NumVertices || nullptr == AiVertexColors0) {
 					check(0 == NumVertices && nullptr == AiVertexColors0);
 					// log
-					UE_LOG(LogAssetImporter, Log,
+					UE_LOG(LogAssetLoader, Log,
 					       TEXT("The first Vertex Color channel exists but there is no "
 					            "vertex or "
 					            "channel data."));
@@ -1271,7 +1269,7 @@ static UProceduralMeshComponent* ConstructProceduralMeshComponentTree(
 			const auto& AiTangents = AiMesh->mTangents;
 
 			if (!AiMesh->HasTangentsAndBitangents()) {
-				UE_LOG(LogAssetImporter, Log, TEXT("There is no Tangent datas."));
+				UE_LOG(LogAssetLoader, Log, TEXT("There is no Tangent datas."));
 			} else {
 				check(NumTangents > 0 && AiTangents != nullptr);
 				for (auto i = decltype(NumTangents){0}; i < NumTangents; ++i) {
