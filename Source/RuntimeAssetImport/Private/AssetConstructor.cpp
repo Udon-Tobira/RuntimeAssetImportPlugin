@@ -1537,7 +1537,8 @@ static UDynamicMeshComponent* ConstructDynamicMeshComponentTree(
 
 		// enable collisions
 		DynamicMeshComponent->EnableComplexAsSimpleCollision();
-		DynamicMeshComponent->SetCollisionProfileName("BlockAllDynamic");
+		DynamicMeshComponent->SetCollisionProfileName(
+		    UCollisionProfile::BlockAllDynamic_ProfileName);
 
 		// set
 		DynamicMeshComponent->SetMesh(MoveTemp(DynamicMesh3));
