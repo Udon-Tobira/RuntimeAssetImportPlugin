@@ -104,7 +104,8 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 		const auto& NumSections = Sections.Num();
 
 		// create mesh sections
-		if constexpr (std::is_same_v<UProceduralMeshComponent, MeshComponentT>) {
+		if constexpr (TypeTests::TAreTypesEqual_V<UProceduralMeshComponent,
+		                                          MeshComponentT>) {
 			for (auto Section_i = decltype(NumSections){0}; Section_i < NumSections;
 			     ++Section_i) {
 				// get reference of the section
@@ -161,7 +162,8 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 			// get description of ProceduralMesh
 			auto ProceduralMeshDescription = BuildMeshDescription(SrcProcMeshComp);
 
-			if constexpr (std::is_same_v<UStaticMeshComponent, MeshComponentT>) {
+			if constexpr (TypeTests::TAreTypesEqual_V<UStaticMeshComponent,
+			                                          MeshComponentT>) {
 				// new StaticMesh
 				const auto& StaticMesh      = NewObject<UStaticMesh>(Owner);
 				StaticMesh->bAllowCPUAccess = true;
@@ -201,8 +203,8 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 
 				// set static mesh
 				MeshComponent->SetStaticMesh(StaticMesh);
-			} else if constexpr (std::is_same_v<UDynamicMeshComponent,
-			                                    MeshComponentT>) {
+			} else if constexpr (TypeTests::TAreTypesEqual_V<UDynamicMeshComponent,
+			                                                 MeshComponentT>) {
 				UE::Geometry::FDynamicMesh3   DynamicMesh3;
 				FMeshDescriptionToDynamicMesh MeshDescriptionToDynamicMesh;
 				MeshDescriptionToDynamicMesh.Convert(&ProceduralMeshDescription,
