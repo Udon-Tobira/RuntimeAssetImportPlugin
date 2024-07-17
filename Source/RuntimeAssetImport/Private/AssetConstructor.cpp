@@ -60,6 +60,9 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 	// must be a root node)
 	check(!MeshData.NodeList.IsEmpty());
 
+	// check to ParentMaterialInterface is properly set
+	check(ParentMaterialInterface != nullptr);
+
 	// check to Owner is properly set
 	check(Owner != nullptr);
 
