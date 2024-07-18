@@ -20,7 +20,7 @@
  * @return array of the material instances
  */
 static TArray<UMaterialInstanceDynamic*>
-    GenerateMaterialInstances(AActor&                            Owner,
+    GenerateMaterialInstances(UObject&                           Owner,
                               const TArray<FLoadedMaterialData>& MaterialDatas,
                               UMaterialInterface& ParentMaterialInterface);
 
@@ -274,6 +274,153 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 }
 #pragma endregion
 
+void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
+    const FLoadedMeshData&    MeshData,
+    UMaterialInterface*       ParentMaterialInterface,
+    UProceduralMeshComponent* TargetProceduralMeshComponent) {
+	// check that the NodeList in MeshData has at least one node (because there
+	// must be a root node)
+	check(!MeshData.NodeList.IsEmpty());
+
+	// check to ParentMaterialInterface is properly set
+	check(ParentMaterialInterface != nullptr);
+
+	// check to TargetProceduralMeshComponent is properly set
+	check(TargetProceduralMeshComponent != nullptr);
+
+	// get node list
+	const auto& NodeList = MeshData.NodeList;
+
+	// number of the NodeList
+	const auto& NumNodeList = NodeList.Num();
+
+	// List of transforms relative to the origin of TargetProceduralMeshComponent
+	TArray<FTransform> TransformListToTarget;
+	TransformListToTarget.AddUninitialized(NumNodeList);
+
+	// get material datas
+	const auto& MaterialDatas = MeshData.MaterialList;
+
+	// generate material instances
+	const auto& MaterialInstances = GenerateMaterialInstances(
+	    *TargetProceduralMeshComponent, MaterialDatas, *ParentMaterialInterface);
+
+	// index of a mesh section in TargetProceduralMeshComponent
+	int32 MeshSectionIndex = 0;
+
+	// construct Mesh Component Tree
+	for (auto Node_i = decltype(NumNodeList){0}; Node_i < NumNodeList; ++Node_i) {
+		// get reference of the node
+		const auto& Node = NodeList[Node_i];
+
+		// get RelativeTransform
+		const auto& RelativeTransform = Node.RelativeTransform;
+
+		// get parent node index
+		const auto& ParentNodeIndex = Node.ParentNodeIndex;
+
+		// get parent's transform relative to target
+		const auto& ParentTransformToTarget = [&Node_i, &TransformListToTarget,
+		                                       &ParentNodeIndex]() {
+			// if this node is a root node
+			if (0 == Node_i) {
+				// return identity transform matrix
+				return FTransform::Identity;
+			}
+
+			// if this node is a non-root node, return parent's transform relative to
+			// target.
+			return TransformListToTarget[ParentNodeIndex];
+		}();
+
+		// calculate transform relative to target
+		// To convert local coordinates to world coordinates:
+		//   Assume the following parent-child relationship
+		//     Child1 (parent) - Child2 (child) - Child3 (grandchild)
+		//
+		//   Let
+		//    - DVn (Translation) be the relative coordinate vector
+		//    - Rn (Rotation) be the relative rotation vector
+		//    - Sn (Scale) be the relative scale vector
+		//   and represent them in a single matrix:
+		//    - Tn (Transform) be the transformation matrix
+		//
+		//   then, let the absolute coordinate vector Vn be,
+		//   V3 = S1*R1*(S2*R2*DV3 + DV2) + DV1
+		//      = S1*R1*(Transform2*DV3) + DV1
+		//      = Transform1*(Transform2*DV3)
+		//      = (Transform1 * Transform2) * DV3
+		//
+		// So the transformation matrix that transforms relative coordinate of Child
+		// n to absolute coordinate can be calculated by
+		// Transform1 * Transform2 * ... * Transform(n-1)
+		//
+		// Therefore, TransformToTarget can be calculated by
+		// ParentTransformToTarget * RelativeTransform.
+		//
+		// However, the Unreal Engine seems to multiply matrices in reverse, so the
+		// following program was used.
+		const auto& TransformToTarget = RelativeTransform * ParentTransformToTarget;
+
+		// set to transform list
+		TransformListToTarget[Node_i] = TransformToTarget;
+
+		// get reference of the sections
+		const auto& Sections = Node.Sections;
+
+		// get number of sections
+		const auto& NumSections = Sections.Num();
+
+		// create mesh sections
+		for (auto Section_i = decltype(NumSections){0}; Section_i < NumSections;
+		     ++Section_i) {
+			// get reference of the section
+			const auto& Section = Sections[Section_i];
+
+			// CreateCollision parameter
+			constexpr auto CreateCollision = true;
+
+			// bSRGBCConversion parameter
+			constexpr auto bSRGBCConversion = false;
+
+			// get Vertices relative to my parent node
+			const auto& Vertices = Section.Vertices;
+
+			// generate Vertices relative to TargetProceduralMeshComponent
+			auto VerticesRelativeToTarget = decltype(Vertices){};
+			Algo::Transform(Vertices, VerticesRelativeToTarget,
+			                [&TransformToTarget](const FVector& vector) {
+				                return TransformToTarget.TransformFVector4(vector);
+			                });
+
+			// get Normals relative to my parent node
+			const auto& Normals = Section.Normals;
+
+			// generate Normals relative to TargetProceduralMeshComponent
+			auto NormalsRelativeToTarget = decltype(Normals){};
+			Algo::Transform(Normals, NormalsRelativeToTarget,
+			                [&TransformToTarget](const FVector& vector) {
+				                return TransformToTarget.TransformFVector4(vector);
+			                });
+
+			// create mesh section
+			TargetProceduralMeshComponent->CreateMeshSection_LinearColor(
+			    MeshSectionIndex, VerticesRelativeToTarget, Section.Triangles,
+			    NormalsRelativeToTarget, Section.UV0Channel, Section.VertexColors0,
+			    Section.Tangents, CreateCollision, bSRGBCConversion);
+
+			// set Material
+			const auto& MaterialIndex    = Section.MaterialIndex;
+			const auto& MaterialInstance = MaterialInstances[MaterialIndex];
+			TargetProceduralMeshComponent->SetMaterial(MeshSectionIndex,
+			                                           MaterialInstance);
+
+			// increment index of a mesh section in TargetProceduralMeshComponent
+			MeshSectionIndex++;
+		}
+	}
+}
+
 UProceduralMeshComponent*
     UAssetConstructor::ConstructProceduralMeshComponentFromMeshData(
         const FLoadedMeshData& MeshData,
@@ -414,7 +561,7 @@ UDynamicMeshComponent*
 
 #pragma region definitions of static functions
 static TArray<UMaterialInstanceDynamic*>
-    GenerateMaterialInstances(AActor&                            Owner,
+    GenerateMaterialInstances(UObject&                           Owner,
                               const TArray<FLoadedMaterialData>& MaterialDatas,
                               UMaterialInterface& ParentMaterialInterface) {
 	TArray<UMaterialInstanceDynamic*> MaterialInstances;

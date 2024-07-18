@@ -56,6 +56,21 @@ UCLASS()
 class RUNTIMEASSETIMPORT_API UAssetConstructor
     : public UBlueprintFunctionLibrary {
 	GENERATED_BODY()
+public:
+	/**
+	 * Create mesh sections on specified procedural mesh component
+	 * @param   MeshData                    mesh data
+	 * @param   ParentMaterialInterface     The base material interface used to
+	 *                                      create materials for the constructed
+	 *                                      meshes.
+	 * @param   TargetProceduralMeshComponent Target procedural mesh component to
+	 *                                        generate mesh sections on.
+	 */
+	UFUNCTION(BlueprintCallable)
+	static void CreateMeshFromMeshDataOnProceduralMeshComponent(
+	    const FLoadedMeshData&    MeshData,
+	    UMaterialInterface*       ParentMaterialInterface,
+	    UProceduralMeshComponent* TargetProceduralMeshComponent);
 
 public:
 	/**
