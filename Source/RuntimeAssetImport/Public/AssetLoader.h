@@ -10,10 +10,23 @@
 
 /**
  * Type representing the result of executing
- * LoadMeshFromAssetFileResult function.
+ * LoadMeshFromAssetFile function.
  */
 UENUM(BlueprintType)
 enum class ELoadMeshFromAssetFileResult : uint8 {
+	/* Success to load */
+	Success,
+
+	/* Failed to load scene */
+	Failure
+};
+
+/**
+ * Type representing the result of executing
+ * LoadMeshFromAssetData function.
+ */
+UENUM(BlueprintType)
+enum class ELoadMeshFromAssetDataResult : uint8 {
 	/* Success to load */
 	Success,
 
@@ -44,4 +57,20 @@ public:
 	    LoadMeshFromAssetFile(
 	        const FString&                FilePath,
 	        ELoadMeshFromAssetFileResult& LoadMeshFromAssetFileResult);
+
+	/**
+	 * Load mesh from the specified asset data. The data format must be one
+	 * supported by assimp.
+	 * @param        AssetData   Asset data on memory.
+	 * @param[out]   LoadMeshFromAssetDataResult Result of the execution.
+	 * @return  If the result is Success, the return value is valid,
+	 *          If the result is Failure, the return value is empty
+	 *          (default-constructed).
+	 */
+	UFUNCTION(BlueprintCallable,
+	          meta = (ExpandEnumAsExecs = "LoadMeshFromAssetDataResult"))
+	static UPARAM(DisplayName = "Mesh Data") FLoadedMeshData
+	    LoadMeshFromAssetData(
+	        const TArray<uint8>&          AssetData,
+	        ELoadMeshFromAssetDataResult& LoadMeshFromAssetDataResult);
 };

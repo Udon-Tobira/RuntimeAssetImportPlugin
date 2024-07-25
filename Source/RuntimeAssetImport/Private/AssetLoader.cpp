@@ -20,6 +20,21 @@ static const aiScene* LoadAiScene(Assimp::Importer& AiImporter,
                                   const FString&    FilePath);
 
 /**
+ * Load Ai(Assimp) Scene
+ * @param AiImporter Assimp Importer
+ * @param AssetData Asset data on memory
+ * @return a valid pointer in case of success, nullptr in case of failure.
+ */
+static const aiScene* LoadAiScene(Assimp::Importer&    AiImporter,
+                                  const TArray<uint8>& AssetData);
+
+/**
+ * Construct mesh data from AiScene
+ * @param        AiScene           assimp's scene object.
+ */
+static FLoadedMeshData ConstructMeshData(const aiScene& AiScene);
+
+/**
  * Transform the coordinate system of an assimp scene to the UE coordinate
  * system.
  * Directly overwrite mTransformation of the root node.
@@ -87,37 +102,76 @@ FLoadedMeshData UAssetLoader::LoadMeshFromAssetFile(
 		return {};
 	}
 
-	// Transform the coordinate system of Ai(Assimp) Scene to the UE coordinate
-	// system.
-	TransformToUECoordinateSystem(*AiScene);
+	// construct mesh data
+	FLoadedMeshData MeshData = ConstructMeshData(*AiScene);
 
-	// output mesh data
-	FLoadedMeshData MeshData;
+	// return mesh data
+	return MeshData;
+}
 
-	// make a list of materials
-	MeshData.MaterialList = GenerateMaterialDatas(*AiScene);
+FLoadedMeshData UAssetLoader::LoadMeshFromAssetData(
+    const TArray<uint8>&          AssetData,
+    ELoadMeshFromAssetDataResult& LoadMeshFromAssetDataResult) {
+	// construct Ai(Assimp) Importer
+	Assimp::Importer AiImporter;
 
-	// construct mesh data from Root Node
-	ConstructMeshData(*AiScene, *AiScene->mRootNode, /*out*/ MeshData, -1);
+	// load AiScene
+	const auto& AiScene = LoadAiScene(AiImporter, AssetData);
+
+	// When a scene fails to load
+	if (nullptr == AiScene) {
+		// assume the result is failure
+		LoadMeshFromAssetDataResult = ELoadMeshFromAssetDataResult::Failure;
+
+		// return empty mesh data
+		return {};
+	}
+
+	// construct mesh data
+	FLoadedMeshData MeshData = ConstructMeshData(*AiScene);
 
 	// return mesh data
 	return MeshData;
 }
 
 #pragma region        definitions of static functions
+static constexpr auto AiImportFlags =
+    aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
+    aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals |
+    aiProcess_OptimizeMeshes | aiProcess_RemoveRedundantMaterials |
+    aiProcess_ImproveCacheLocality | aiProcess_FindInvalidData |
+    aiProcess_EmbedTextures | aiProcess_GenUVCoords |
+    aiProcess_TransformUVCoords | aiProcess_MakeLeftHanded | aiProcess_FlipUVs;
+
 static const aiScene* LoadAiScene(Assimp::Importer& AiImporter,
                                   const FString&    FilePath) {
 	// import
-	const auto& AiImportFlags =
-	    aiProcess_Triangulate | aiProcess_JoinIdenticalVertices |
-	    aiProcess_CalcTangentSpace | aiProcess_GenSmoothNormals |
-	    aiProcess_OptimizeMeshes | aiProcess_RemoveRedundantMaterials |
-	    aiProcess_ImproveCacheLocality | aiProcess_FindInvalidData |
-	    aiProcess_EmbedTextures | aiProcess_GenUVCoords |
-	    aiProcess_TransformUVCoords | aiProcess_MakeLeftHanded |
-	    aiProcess_FlipUVs;
-
 	return AiImporter.ReadFile(TCHAR_TO_UTF8(*FilePath), AiImportFlags);
+}
+
+static const aiScene* LoadAiScene(Assimp::Importer&    AiImporter,
+                                  const TArray<uint8>& AssetData) {
+	// import
+	return AiImporter.ReadFileFromMemory(&AssetData[0], AssetData.Num(),
+	                                     AiImportFlags);
+}
+
+static FLoadedMeshData ConstructMeshData(const aiScene& AiScene) {
+	// Transform the coordinate system of Ai(Assimp) Scene to the UE coordinate
+	// system.
+	TransformToUECoordinateSystem(AiScene);
+
+	// output mesh data
+	FLoadedMeshData MeshData;
+
+	// make a list of materials
+	MeshData.MaterialList = GenerateMaterialDatas(AiScene);
+
+	// construct mesh data from Root Node
+	ConstructMeshData(AiScene, *AiScene.mRootNode, /*out*/ MeshData, -1);
+
+	// return mesh data
+	return MeshData;
 }
 
 static void TransformToUECoordinateSystem(const aiScene& AiScene) {
