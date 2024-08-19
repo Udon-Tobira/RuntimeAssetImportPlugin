@@ -339,11 +339,13 @@ void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
 		//     Child1 (parent) - Child2 (child) - Child3 (grandchild)
 		//
 		//   Let
-		//    - DVn (Translation) be the relative coordinate vector
-		//    - Rn (Rotation) be the relative rotation vector
-		//    - Sn (Scale) be the relative scale vector
+		//    - DVn (Translation) be the relative coordinate vector of
+		//      Child n to its parent
+		//    - Rn (Rotation) be the relative rotation vector of ...
+		//    - Sn (Scale) be the relative scale vector of ...
 		//   and represent them in a single matrix:
-		//    - Tn (Transform) be the transformation matrix
+		//    - "Transform(n)" be the transformation matrix
+		//      (If n is just a number, I omit the parentheses)
 		//
 		//   then, let the absolute coordinate vector Vn be,
 		//   V3 = S1*R1*(S2*R2*DV3 + DV2) + DV1
@@ -353,13 +355,14 @@ void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
 		//
 		// So the transformation matrix that transforms relative coordinate of Child
 		// n to absolute coordinate can be calculated by
-		// Transform1 * Transform2 * ... * Transform(n-1)
+		//    Transform1 * Transform2 * ... * Transform(n-1)              ...... <1>
 		//
-		// Therefore, TransformToTarget can be calculated by
-		// ParentTransformToTarget * RelativeTransform.
+		// However, in the Unreal Engine, the transformation matrix is held in the
+		// form of a transposed matrix. For any matrix A, let t(A) be its transpose
+		// matrix, then the formula <1> equals
+		//    t(t(Transform(n-1)) * ... * t(Transform2) * t(Transform1))
 		//
-		// However, the Unreal Engine seems to multiply matrices in reverse, so the
-		// following program was used.
+		// Therefore, I calculate as follows:
 		const auto& TransformToTarget = RelativeTransform * ParentTransformToTarget;
 
 		// set to transform list
