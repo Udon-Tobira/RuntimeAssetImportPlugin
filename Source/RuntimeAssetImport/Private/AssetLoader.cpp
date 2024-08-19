@@ -548,6 +548,9 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 	// add node to node list (MeshData.NodeList)
 	MeshData.NodeList.Add(MoveTemp(Node));
 
+	// get this node's index
+	const auto NodeIndex = MeshData.NodeList.Num() - 1;
+
 	// Recursively add children's mesh nodes
 	const auto& NumChildren = AiNode.mNumChildren;
 	for (auto i = decltype(NumChildren){0}; i < NumChildren; ++i) {
@@ -555,7 +558,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 		const auto& AiChildNode = *AiNode.mChildren[i];
 
 		// construct mesh data
-		ConstructMeshData(AiScene, AiChildNode, MeshData, ParentNodeIndex + 1);
+		ConstructMeshData(AiScene, AiChildNode, MeshData, NodeIndex);
 	}
 }
 
