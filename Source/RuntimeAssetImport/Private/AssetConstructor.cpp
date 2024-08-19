@@ -363,7 +363,9 @@ void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
 		//    t(t(Transform(n-1)) * ... * t(Transform2) * t(Transform1))
 		//
 		// Therefore, I calculate as follows:
-		const auto& TransformToTarget = RelativeTransform * ParentTransformToTarget;
+		const auto& TransformToTarget =
+		    FTransform(RelativeTransform.ToMatrixWithScale() *
+		               ParentTransformToTarget.ToMatrixWithScale());
 
 		// set to transform list
 		TransformListToTarget[Node_i] = TransformToTarget;
