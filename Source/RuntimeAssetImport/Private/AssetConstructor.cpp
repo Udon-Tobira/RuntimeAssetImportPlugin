@@ -386,7 +386,7 @@ void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
 			constexpr auto CreateCollision = true;
 
 			// bSRGBCConversion parameter
-			constexpr auto bSRGBCConversion = false;
+			constexpr auto bSRGBConversion = false;
 
 			// get Vertices relative to my parent node
 			const auto& Vertices = Section.Vertices;
@@ -412,7 +412,7 @@ void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
 			TargetProceduralMeshComponent->CreateMeshSection_LinearColor(
 			    MeshSectionIndex, VerticesRelativeToTarget, Section.Triangles,
 			    NormalsRelativeToTarget, Section.UV0Channel, Section.VertexColors0,
-			    Section.Tangents, CreateCollision, bSRGBCConversion);
+			    Section.Tangents, CreateCollision, bSRGBConversion);
 
 			// set Material
 			const auto& MaterialIndex    = Section.MaterialIndex;
