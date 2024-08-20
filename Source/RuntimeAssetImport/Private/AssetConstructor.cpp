@@ -583,23 +583,31 @@ static TArray<UMaterialInstanceDynamic*>
 
 		const auto& MaterialData = MaterialDatas[i];
 
-		// in case Color is set (no texture)
-		if (!MaterialData.HasTexture) {
+		switch (MaterialData.ColorStatus) {
+		case EColorStatus::ColorIsSet: {
 			// log that no texture is found
 			UE_LOG(LogAssetConstructor, Log,
 			       TEXT("No texture is found for material in index %d"), i);
 
 			VerifyMaterialParameter(ParentMaterialInterface,
+			                        EMaterialParameterType::Scalar,
+			                        "TextureBlendIntensityForBaseColor");
+			VerifyMaterialParameter(ParentMaterialInterface,
 			                        EMaterialParameterType::Vector, "BaseColor4");
+
+			// set to use color
+			MaterialInstance->SetScalarParameterValue(
+			    "TextureBlendIntensityForBaseColor", 0.0f);
 
 			// get color
 			const auto& Color = MaterialData.Color;
 
 			// set color
 			MaterialInstance->SetVectorParameterValue("BaseColor4", Color);
+
+			break;
 		}
-		// if texture is set
-		else {
+		case EColorStatus::TextureIsSet: {
 			// get compressed texture data
 			const auto& CompressedTextureData = MaterialData.CompressedTextureData;
 
@@ -608,11 +616,29 @@ static TArray<UMaterialInstanceDynamic*>
 			    FImageUtils::ImportBufferAsTexture2D(CompressedTextureData);
 
 			VerifyMaterialParameter(ParentMaterialInterface,
+			                        EMaterialParameterType::Scalar,
+			                        "TextureBlendIntensityForBaseColor");
+			VerifyMaterialParameter(ParentMaterialInterface,
 			                        EMaterialParameterType::Texture,
 			                        "BaseColorTexture");
 
+			// set to use texture
+			MaterialInstance->SetScalarParameterValue(
+			    "TextureBlendIntensityForBaseColor", 1.0f);
+
 			// set texture
 			MaterialInstance->SetTextureParameterValue("BaseColorTexture", Texture0);
+
+			break;
+		}
+		default:
+			// if the texture is in the status of failure
+			UE_LOG(LogAssetConstructor, Warning,
+			       TEXT("The original data had a texture set, but it failed to load, "
+			            "so skip setting the texture in index %d"),
+			       i);
+
+			break;
 		}
 
 		MaterialInstances[i] = MaterialInstance;

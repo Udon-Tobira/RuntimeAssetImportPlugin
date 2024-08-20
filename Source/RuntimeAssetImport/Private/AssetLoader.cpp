@@ -253,16 +253,19 @@ static TArray<FLoadedMaterialData>
 			UE_LOG(LogAssetLoader, Log,
 			       TEXT("No texture is found for material in index %d"), i);
 
+			// set ColorStatus that color is set
+			MaterialData.ColorStatus = EColorStatus::ColorIsSet;
+
 			aiColor4D   AiDiffuse;
 			const auto& GetDiffuseResult =
 			    AiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, AiDiffuse);
 			switch (GetDiffuseResult) {
 			case aiReturn_FAILURE:
-				UE_LOG(LogAssetLoader, Warning,
+				UE_LOG(LogAssetLoader, Error,
 				       TEXT("No color is set for material in index %d"), i);
 				break;
 			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetLoader, Warning,
+				UE_LOG(LogAssetLoader, Error,
 				       TEXT("Color couldn't get due to out of memory"));
 				break;
 			default:
@@ -287,16 +290,28 @@ static TArray<FLoadedMaterialData>
 			    AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), AiTexture0Path);
 			switch (AiGetTextureResult) {
 			case aiReturn_FAILURE:
-				UE_LOG(LogAssetLoader, Warning,
+				// log
+				UE_LOG(LogAssetLoader, Error,
 				       TEXT("Failed to get texture for material in index %d"), i);
+
+				// set ColorStatus as error
+				MaterialData.ColorStatus = EColorStatus::TextureWasSetButError;
 				break;
 			case aiReturn_OUTOFMEMORY:
-				UE_LOG(LogAssetLoader, Warning,
+				// log
+				UE_LOG(LogAssetLoader, Error,
 				       TEXT("Failed to get texture due to out of memory"));
+
+				// set ColorStatus as error
+				MaterialData.ColorStatus = EColorStatus::TextureWasSetButError;
 				break;
 			default:
 				verifyf(aiReturn_SUCCESS == AiGetTextureResult,
 				        TEXT("Bug. AiGetTextureResult should be aiReturn_SUCCESS."));
+
+				// set ColorStatus that texture is set
+				MaterialData.ColorStatus = EColorStatus::TextureIsSet;
+
 				const auto& AiTexture0 =
 				    AiScene.GetEmbeddedTexture(AiTexture0Path.C_Str());
 
@@ -333,7 +348,6 @@ static TArray<FLoadedMaterialData>
 						MaterialData.CompressedTextureData =
 						    decltype(MaterialData.CompressedTextureData)(SeqData, Size);
 					}
-					MaterialData.HasTexture = true;
 				}
 
 				break;
