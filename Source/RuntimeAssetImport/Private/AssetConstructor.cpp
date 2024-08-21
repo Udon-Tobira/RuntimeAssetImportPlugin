@@ -370,6 +370,9 @@ void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
 		// set to transform list
 		TransformListToTarget[Node_i] = TransformToTarget;
 
+		// rotator of TransformToTarget
+		const auto& TransformToTargetRotator = TransformToTarget.Rotator();
+
 		// get reference of the sections
 		const auto& Sections = Node.Sections;
 
@@ -404,15 +407,28 @@ void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
 			// generate Normals relative to TargetProceduralMeshComponent
 			auto NormalsRelativeToTarget = decltype(Normals){};
 			Algo::Transform(Normals, NormalsRelativeToTarget,
-			                [&TransformToTarget](const FVector& vector) {
-				                return TransformToTarget.TransformFVector4(vector);
+			                [&TransformToTargetRotator](const FVector& vector) {
+				                return TransformToTargetRotator.RotateVector(vector);
 			                });
+
+			// get Tangents relative to my parent node
+			const auto& Tangents = Section.Tangents;
+
+			// generate Tangents relative to TargetProceduralMeshComponent
+			auto TangentsRelativeToTarget = decltype(Tangents){};
+			Algo::Transform(
+			    Tangents, TangentsRelativeToTarget,
+			    [&TransformToTargetRotator](const FProcMeshTangent& ProcMeshTangent) {
+				    return FProcMeshTangent(
+				        TransformToTargetRotator.RotateVector(ProcMeshTangent.TangentX),
+				        ProcMeshTangent.bFlipTangentY);
+			    });
 
 			// create mesh section
 			TargetProceduralMeshComponent->CreateMeshSection_LinearColor(
 			    MeshSectionIndex, VerticesRelativeToTarget, Section.Triangles,
 			    NormalsRelativeToTarget, Section.UV0Channel, Section.VertexColors0,
-			    Section.Tangents, CreateCollision, bSRGBConversion);
+			    TangentsRelativeToTarget, CreateCollision, bSRGBConversion);
 
 			// set Material
 			const auto& MaterialIndex    = Section.MaterialIndex;
@@ -584,6 +600,12 @@ static TArray<UMaterialInstanceDynamic*>
 		const auto& MaterialData = MaterialDatas[i];
 
 		switch (MaterialData.ColorStatus) {
+		case EColorStatus::None:
+			// if nothing is set
+			UE_LOG(LogAssetConstructor, Error,
+			       TEXT("color status is not set in index %d"), i);
+
+			break;
 		case EColorStatus::ColorIsSet: {
 			// log that no texture is found
 			UE_LOG(LogAssetConstructor, Log,
