@@ -547,6 +547,10 @@ UStaticMeshComponent*
 	}
 	check(ELoadMeshFromAssetFileResult::Success == LoadMeshFromAssetFileResult);
 
+	// assume the result is success
+	ConstructStaticMeshComponentFromAssetFileResult =
+	    EConstructStaticMeshComponentFromAssetFileResult::Success;
+
 	// construct from loaded mesh data
 	return ConstructStaticMeshComponentFromMeshData(
 	    LoadedMeshData, ParentMaterialInterface, Owner,
@@ -577,6 +581,10 @@ UDynamicMeshComponent*
 		    EConstructDynamicMeshComponentFromAssetFileResult::Failure;
 	}
 	check(ELoadMeshFromAssetFileResult::Success == LoadMeshFromAssetFileResult);
+
+	// assume the result is success
+	ConstructDynamicMeshComponentFromAssetFileResult =
+	    EConstructDynamicMeshComponentFromAssetFileResult::Success;
 
 	// construct from loaded mesh data
 	return ConstructDynamicMeshComponentFromMeshData(
