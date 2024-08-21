@@ -512,6 +512,10 @@ UProceduralMeshComponent*
 	}
 	check(ELoadMeshFromAssetFileResult::Success == LoadMeshFromAssetFileResult);
 
+	// assume the result is success
+	ConstructProceduralMeshComponentFromAssetFileResult =
+	    EConstructProceduralMeshComponentFromAssetFileResult::Success;
+
 	// construct from loaded mesh data
 	return ConstructProceduralMeshComponentFromMeshData(
 	    LoadedMeshData, ParentMaterialInterface, Owner,

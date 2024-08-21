@@ -101,6 +101,9 @@ FLoadedMeshData UAssetLoader::LoadMeshFromAssetFile(
 		return {};
 	}
 
+	// assume the result is success
+	LoadMeshFromAssetFileResult = ELoadMeshFromAssetFileResult::Success;
+
 	// construct mesh data
 	FLoadedMeshData MeshData = ConstructMeshData(*AiScene);
 
@@ -125,6 +128,9 @@ FLoadedMeshData UAssetLoader::LoadMeshFromAssetData(
 		// return empty mesh data
 		return {};
 	}
+
+	// assume the result is success
+	LoadMeshFromAssetDataResult = ELoadMeshFromAssetDataResult::Success;
 
 	// construct mesh data
 	FLoadedMeshData MeshData = ConstructMeshData(*AiScene);
