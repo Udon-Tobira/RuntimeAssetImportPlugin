@@ -317,9 +317,9 @@ static TArray<FLoadedMaterialData>
 				if (nullptr == AiTexture0) {
 					// TODO: load from file
 					UE_LOG(LogAssetLoader, Error,
-					       TEXT("Texture %hs is not embedded in the file and "
+					       TEXT("Texture %s is not embedded in the file and "
 					            "cannot be read."),
-					       AiTexture0Path.C_Str());
+					       UTF8_TO_TCHAR(AiTexture0Path.C_Str()));
 				} else {
 					// get width and height
 					const auto& Width  = AiTexture0->mWidth;
@@ -372,7 +372,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 
 	// get/set node name
 	const auto& AiNodeName = AiNode.mName;
-	const auto& NodeName   = AiNodeName.C_Str();
+	const auto& NodeName   = UTF8_TO_TCHAR(AiNodeName.C_Str());
 	Node.Name              = NodeName;
 
 	// get/set RelativeTransform
@@ -404,7 +404,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 
 			if (!AiMesh->HasPositions()) {
 				UE_LOG(LogAssetLoader, Display,
-				       TEXT("There is no Vertices in index %d in %hs."), MeshIndex,
+				       TEXT("There is no Vertices in index %d in %s."), MeshIndex,
 				       NodeName);
 			} else {
 				check(NumVertices > 0 && AiVertices != nullptr);
@@ -425,7 +425,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 
 			if (!AiMesh->HasFaces()) {
 				UE_LOG(LogAssetLoader, Display,
-				       TEXT("There is no Faces in index %d in %hs."), MeshIndex,
+				       TEXT("There is no Faces in index %d in %s."), MeshIndex,
 				       NodeName);
 			} else {
 				check(NumFaces > 0 && AiFaces != nullptr);
@@ -455,7 +455,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 
 			if (!AiMesh->HasNormals()) {
 				UE_LOG(LogAssetLoader, Display,
-				       TEXT("There is no Normal data in index %d in %hs."), MeshIndex,
+				       TEXT("There is no Normal data in index %d in %s."), MeshIndex,
 				       NodeName);
 			} else {
 				check(NumNormals > 0 && AiNormals != nullptr);
@@ -481,14 +481,13 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 			if (!AiMesh->HasTextureCoords(0)) {
 				// log
 				UE_LOG(LogAssetLoader, Log,
-				       TEXT("There is no UV channels in index %d in %hs."), MeshIndex,
+				       TEXT("There is no UV channels in index %d in %s."), MeshIndex,
 				       NodeName);
 			} else {
 				check(NumUVChannels > 0 && AiUVChannels != nullptr);
 				ensureMsgf(
 				    1 == NumUVChannels,
-				    TEXT(
-				        "Currently only 1 UV channel is supported in index %d in %hs."),
+				    TEXT("Currently only 1 UV channel is supported in index %d in %s."),
 				    MeshIndex, NodeName);
 
 				const auto& AiUV0Channel = AiUVChannels[0];
@@ -498,7 +497,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 					UE_LOG(LogAssetLoader, Warning,
 					       TEXT("The first UV channel exists but there is no vertex or "
 					            "channel "
-					            "data in index %d in %hs."),
+					            "data in index %d in %s."),
 					       MeshIndex, NodeName);
 				} else {
 					for (auto i = decltype(NumVertices){0}; i < NumVertices; ++i) {
@@ -524,13 +523,13 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 			if (!AiMesh->HasVertexColors(0)) {
 				// log
 				UE_LOG(LogAssetLoader, Verbose,
-				       TEXT("There is no Vertex Color channels in index %d in %hs."),
+				       TEXT("There is no Vertex Color channels in index %d in %s."),
 				       MeshIndex, NodeName);
 			} else {
 				check(NumVertexColorChannels > 0 && AiVertexColors != nullptr);
 				ensureMsgf(1 == NumVertexColorChannels,
 				           TEXT("Currently only 1 Vertex Color channel is supported in "
-				                "index %d in %hs."),
+				                "index %d in %s."),
 				           MeshIndex, NodeName);
 
 				const auto& AiVertexColors0 = AiVertexColors[0];
@@ -540,7 +539,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 					UE_LOG(LogAssetLoader, Warning,
 					       TEXT("The first Vertex Color channel exists but there is no "
 					            "vertex or "
-					            "channel data in index %d in %hs."),
+					            "channel data in index %d in %s."),
 					       MeshIndex, NodeName);
 				} else {
 					for (auto i = decltype(NumVertices){0}; i < NumVertices; ++i) {
@@ -564,7 +563,7 @@ static void ConstructMeshData(const aiScene& AiScene, const aiNode& AiNode,
 
 			if (!AiMesh->HasTangentsAndBitangents()) {
 				UE_LOG(LogAssetLoader, Display,
-				       TEXT("There is no Tangent data in index %d in %hs."), MeshIndex,
+				       TEXT("There is no Tangent data in index %d in %s."), MeshIndex,
 				       NodeName);
 			} else {
 				check(NumTangents > 0 && AiTangents != nullptr);
