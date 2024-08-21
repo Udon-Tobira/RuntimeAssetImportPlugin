@@ -12,9 +12,9 @@
 
 #pragma region forward declarations of static functions
 /**
- * Generate material instances from array of material datas.
+ * Generate material instances from array of material data.
  * @param Owner Owner of the material instances
- * @param MaterialDatas array of material datas
+ * @param MaterialDataList array of material data
  * @param ParentMaterialInterface Parent MaterialInterface from which
  *                                the material instance was created
  * @return array of the material instances
@@ -76,12 +76,12 @@ static MeshComponentT* ConstructMeshComponentFromMeshData(
 	TArray<MeshComponentT*> MeshComponentList;
 	MeshComponentList.AddUninitialized(NumNodeList);
 
-	// get material datas
-	const auto& MaterialDatas = MeshData.MaterialList;
+	// get material list
+	const auto& MaterialList = MeshData.MaterialList;
 
 	// generate material instances
-	const auto& MaterialInstances = GenerateMaterialInstances(
-	    *Owner, MaterialDatas, *ParentMaterialInterface);
+	const auto& MaterialInstances =
+	    GenerateMaterialInstances(*Owner, MaterialList, *ParentMaterialInterface);
 
 	// construct Mesh Component Tree
 	for (auto Node_i = decltype(NumNodeList){0}; Node_i < NumNodeList; ++Node_i) {
@@ -298,12 +298,12 @@ void UAssetConstructor::CreateMeshFromMeshDataOnProceduralMeshComponent(
 	TArray<FTransform> TransformListToTarget;
 	TransformListToTarget.AddUninitialized(NumNodeList);
 
-	// get material datas
-	const auto& MaterialDatas = MeshData.MaterialList;
+	// get material list
+	const auto& MaterialList = MeshData.MaterialList;
 
 	// generate material instances
 	const auto& MaterialInstances = GenerateMaterialInstances(
-	    *TargetProceduralMeshComponent, MaterialDatas, *ParentMaterialInterface);
+	    *TargetProceduralMeshComponent, MaterialList, *ParentMaterialInterface);
 
 	// index of a mesh section in TargetProceduralMeshComponent
 	int32 MeshSectionIndex = 0;
@@ -580,24 +580,23 @@ UDynamicMeshComponent*
 	    ShouldRegisterComponentToOwner);
 }
 
-#pragma region definitions of static functions
-static TArray<UMaterialInstanceDynamic*>
-    GenerateMaterialInstances(UObject&                           Owner,
-                              const TArray<FLoadedMaterialData>& MaterialDatas,
-                              UMaterialInterface& ParentMaterialInterface) {
+#pragma region                           definitions of static functions
+static TArray<UMaterialInstanceDynamic*> GenerateMaterialInstances(
+    UObject& Owner, const TArray<FLoadedMaterialData>& MaterialDataList,
+    UMaterialInterface& ParentMaterialInterface) {
 	TArray<UMaterialInstanceDynamic*> MaterialInstances;
-	const auto&                       NumMaterials = MaterialDatas.Num();
+	const auto&                       NumMaterials = MaterialDataList.Num();
 	MaterialInstances.AddUninitialized(NumMaterials);
 
 	if (0 == NumMaterials) {
-		UE_LOG(LogAssetConstructor, Warning, TEXT("There is no Materials."));
+		UE_LOG(LogAssetConstructor, Display, TEXT("There is no Materials."));
 	}
 	for (auto i = decltype(NumMaterials){0}; i < NumMaterials; ++i) {
 		// create material
 		UMaterialInstanceDynamic* MaterialInstance =
 		    UMaterialInstanceDynamic::Create(&ParentMaterialInterface, &Owner);
 
-		const auto& MaterialData = MaterialDatas[i];
+		const auto& MaterialData = MaterialDataList[i];
 
 		switch (MaterialData.ColorStatus) {
 		case EColorStatus::None:

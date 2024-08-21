@@ -25,7 +25,7 @@ struct RUNTIMEASSETIMPORT_API FLoadedMeshNode {
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	FTransform RelativeTransform;
 
-	// Actual mesh section datas. There may be more than one.
+	// Actual mesh section data. There may be more than one.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	TArray<FLoadedMeshSectionData> Sections;
 

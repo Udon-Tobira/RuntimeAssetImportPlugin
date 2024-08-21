@@ -57,11 +57,10 @@ static float GetAiUnitScaleFactor(const aiScene& AiScene);
 static aiMatrix4x4t<float> GenerateAi_UE_XformMatrix(const aiScene& AiScene);
 
 /**
- * Generate material datas from Ai(Assimp) Scene object.
+ * Generate material list from Ai(Assimp) Scene object.
  * @param AiScene Ai(Assimp) Scene
  */
-static TArray<FLoadedMaterialData>
-    GenerateMaterialDatas(const aiScene& AiScene);
+static TArray<FLoadedMaterialData> GenerateMaterialList(const aiScene& AiScene);
 
 /**
  * Construct mesh data recursively from the AiNode
@@ -165,7 +164,7 @@ static FLoadedMeshData ConstructMeshData(const aiScene& AiScene) {
 	FLoadedMeshData MeshData;
 
 	// make a list of materials
-	MeshData.MaterialList = GenerateMaterialDatas(AiScene);
+	MeshData.MaterialList = GenerateMaterialList(AiScene);
 
 	// construct mesh data from Root Node
 	ConstructMeshData(AiScene, *AiScene.mRootNode, /*out*/ MeshData, -1);
@@ -229,7 +228,7 @@ static aiMatrix4x4t<float> GenerateAi_UE_XformMatrix(const aiScene& AiScene) {
 }
 
 static TArray<FLoadedMaterialData>
-    GenerateMaterialDatas(const aiScene& AiScene) {
+    GenerateMaterialList(const aiScene& AiScene) {
 	TArray<FLoadedMaterialData> MaterialList;
 	const auto&                 NumMaterials = AiScene.mNumMaterials;
 	MaterialList.AddDefaulted(NumMaterials);
