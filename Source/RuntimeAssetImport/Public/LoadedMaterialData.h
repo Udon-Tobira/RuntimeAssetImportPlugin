@@ -11,6 +11,9 @@
  */
 UENUM()
 enum class EColorStatus {
+	// nothing is set
+	None,
+
 	// color is set but not texture
 	ColorIsSet,
 
@@ -46,5 +49,5 @@ struct RUNTIMEASSETIMPORT_API FLoadedMaterialData {
 	// but its data could not be loaded, and both Color and CompressedTextureData
 	// properties are not available.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-	EColorStatus ColorStatus;
+	EColorStatus ColorStatus = EColorStatus::None;
 };

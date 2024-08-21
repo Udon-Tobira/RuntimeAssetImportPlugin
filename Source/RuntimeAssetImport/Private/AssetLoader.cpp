@@ -354,6 +354,9 @@ static TArray<FLoadedMaterialData>
 			}
 		}
 
+		verifyf(MaterialData.ColorStatus != EColorStatus::None,
+		        TEXT("Bug. Color status was not set in index %d."), i);
+
 		MaterialList[i] = MaterialData;
 	}
 

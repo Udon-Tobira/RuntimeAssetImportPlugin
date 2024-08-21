@@ -631,13 +631,17 @@ static TArray<UMaterialInstanceDynamic*>
 
 			break;
 		}
-		default:
+		case EColorStatus::TextureWasSetButError:
 			// if the texture is in the status of failure
 			UE_LOG(LogAssetConstructor, Warning,
 			       TEXT("The original data had a texture set, but it failed to load, "
 			            "so skip setting the texture in index %d"),
 			       i);
 
+			break;
+		default:
+			verifyf(false, TEXT("Bug. Color status is not None, ColorIsSet, "
+			                    "TextureIsSet, or TextureWasSetButError."));
 			break;
 		}
 
