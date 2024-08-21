@@ -2,4 +2,4 @@
 
 #include "Logging/LogMacros.h"
 
-DECLARE_LOG_CATEGORY_EXTERN(LogAssetConstructor, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogAssetConstructor, Display, All);
