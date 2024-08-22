@@ -66,8 +66,10 @@ public:
 	 * @param   TargetProceduralMeshComponent Target procedural mesh component to
 	 *                                        generate mesh sections on.
 	 */
-	UFUNCTION(BlueprintCallable)
+	UFUNCTION(BlueprintCallable, meta = (Latent, LatentInfo = "LatentActionInfo",
+	                                     WorldContext = "WorldContextObject"))
 	static void CreateMeshFromMeshDataOnProceduralMeshComponent(
+	    const UObject* WorldContextObject, FLatentActionInfo LatentActionInfo,
 	    const FLoadedMeshData&    MeshData,
 	    UMaterialInterface*       ParentMaterialInterface,
 	    UProceduralMeshComponent* TargetProceduralMeshComponent);
