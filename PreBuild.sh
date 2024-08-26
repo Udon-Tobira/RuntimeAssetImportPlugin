@@ -2,6 +2,9 @@
 
 set -e
 
+# Set path explicitly
+export PATH="/usr/local/bin:$PATH"
+
 # Function to check if a command exists
 assureHasCommand() {
     if ! command -v "$1" &> /dev/null; then
