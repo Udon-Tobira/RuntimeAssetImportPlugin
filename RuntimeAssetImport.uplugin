@@ -17,6 +17,9 @@
 	"PreBuildSteps": {
 		"Win64": [
 			"$(PluginDir)\\PreBuild.bat"
+		],
+		"Mac": [
+			"$(PluginDir)\\PreBuild.sh"
 		]
 	},
 	"Modules": [
