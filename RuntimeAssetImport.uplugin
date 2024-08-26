@@ -19,7 +19,7 @@
 			"$(PluginDir)\\PreBuild.bat"
 		],
 		"Mac": [
-			"$(PluginDir)\\PreBuild.sh"
+			"$(PluginDir)/PreBuild.sh"
 		]
 	},
 	"Modules": [
