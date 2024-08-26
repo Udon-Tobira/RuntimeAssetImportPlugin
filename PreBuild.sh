@@ -3,7 +3,7 @@
 set -e
 
 # Set path explicitly
-export PATH="/usr/local/bin:$PATH"
+export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:$PATH"
 
 # Function to check if a command exists
 assureHasCommand() {
