@@ -19,6 +19,7 @@
 			"$(PluginDir)\\PreBuild.bat"
 		],
 		"Mac": [
+			"chmod +x \"$(PluginDir)/PreBuild.sh\"",
 			"$(PluginDir)/PreBuild.sh"
 		]
 	},
