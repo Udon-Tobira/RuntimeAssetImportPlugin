@@ -38,7 +38,7 @@ public class assimp : ModuleRules
         }
         else if (Target.Platform == UnrealTargetPlatform.Mac)
         {
-            var assimpDylibFilePath = Path.Combine(assimpBinDirectoryPath, "Release", "*.dylib");
+            var assimpDylibFilePath = Path.Combine(assimpBinDirectoryPath, "libassimp.dylib");
 
             // Delay-load the DLL, so we can load it from the right place first
             PublicDelayLoadDLLs.Add(Path.Combine(assimpDylibFilePath));
