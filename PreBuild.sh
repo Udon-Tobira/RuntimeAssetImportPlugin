@@ -31,6 +31,6 @@ assureExecute() {
     assureHasCommand cmake
 
     # Run cmake commands
-    assureExecute cmake CMakeLists.txt
+    assureExecute cmake -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release CMakeLists.txt
     assureExecute cmake --build . --config Release
 )
