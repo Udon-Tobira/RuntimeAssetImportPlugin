@@ -16,7 +16,7 @@
 	"Installed": false,
 	"PreBuildSteps": {
 		"Win64": [
-			"$(PluginDir)\\PreBuild.bat"
+			"\"$(PluginDir)\\PreBuild.bat\""
 		],
 		"Mac": [
 			"chmod +x \"$(PluginDir)/PreBuild.sh\"",
