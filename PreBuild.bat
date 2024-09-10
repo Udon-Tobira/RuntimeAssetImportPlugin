@@ -23,7 +23,7 @@ exit /b
     rem if the command was not found
     if not %errorlevel% equ 0 (
         rem show error message
-        echo '%1' is not recognized as an internal or external command, operable program or batch file.
+        echo ERROR: '%1' is not recognized as an internal or external command, operable program or batch file. 1>&2
 
         rem exit with command not found error
         exit 9009
@@ -43,7 +43,7 @@ exit /b
     rem if has error
     if not %errorlevel% equ 0 (
         rem show error message
-        echo command "%escapedcommand%" failed.
+        echo ERROR: command "%escapedcommand%" failed. 1>&2
 
         rem exit with error
         exit %errorlevel%

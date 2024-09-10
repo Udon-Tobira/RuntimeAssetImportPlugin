@@ -8,7 +8,7 @@ export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:$PATH"
 # Function to check if a command exists
 assureHasCommand() {
     if ! command -v "$1" &> /dev/null; then
-        echo "$1 is not recognized as a command."
+        echo "ERROR: $1 is not recognized as a command." 1>&2
         exit 9009
     fi
 }
@@ -17,7 +17,7 @@ assureHasCommand() {
 assureExecute() {
     "$@"
     if [ $? -ne 0 ]; then
-        echo "Command \"$*\" failed."
+        echo "ERROR: Command \"$*\" failed." 1>&2
         exit $?
     fi
 }
