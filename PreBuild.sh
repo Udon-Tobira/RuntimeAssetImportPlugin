@@ -2,8 +2,8 @@
 
 set -e
 
-# Set path explicitly
-export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:$PATH"
+# Set homebrew path explicitly
+export PATH="$PATH:/opt/homebrew/bin:/opt/homebrew/sbin"
 
 # Function to check if a command exists
 assureHasCommand() {
