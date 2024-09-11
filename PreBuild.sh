@@ -9,6 +9,7 @@ export PATH="/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin:$PATH"
 assureHasCommand() {
     if ! command -v "$1" &> /dev/null; then
         echo "ERROR: $1 is not recognized as a command." 1>&2
+        echo "PATH = $PATH"
         exit 9009
     fi
 }
@@ -18,6 +19,7 @@ assureExecute() {
     "$@"
     if [ $? -ne 0 ]; then
         echo "ERROR: Command \"$*\" failed." 1>&2
+        echo "PATH = $PATH"
         exit $?
     fi
 }

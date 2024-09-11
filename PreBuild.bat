@@ -25,6 +25,9 @@ exit /b
         rem show error message
         echo ERROR: '%1' is not recognized as an internal or external command, operable program or batch file. 1>&2
 
+        rem show path for check details
+        echo PATH = %PATH%
+
         rem exit with command not found error
         exit 9009
     )
@@ -44,6 +47,9 @@ exit /b
     if not %errorlevel% equ 0 (
         rem show error message
         echo ERROR: command "%escapedcommand%" failed. 1>&2
+
+        rem show path for check details
+        echo PATH = %PATH%
 
         rem exit with error
         exit %errorlevel%
