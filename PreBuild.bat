@@ -9,7 +9,7 @@ setlocal
     call :assureHasCommand cmake
 
     rem cmake
-    call :assureExecute cmake CMakeLists.txt
+    call :assureExecute cmake -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF -DASSIMP_INSTALL=OFF -DCMAKE_BUILD_TYPE=Release CMakeLists.txt
     call :assureExecute cmake --build . --config Release
 
     rem pop from stack
