@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/DynamicMeshComponent.h"
 #include "LoadedMeshData.h"
 #include "MeshDescriptionToDynamicMesh.h"
 #include "ProceduralMeshConversion.h"
