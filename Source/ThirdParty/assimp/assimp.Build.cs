@@ -44,7 +44,7 @@ public class assimp : ModuleRules
             PublicDelayLoadDLLs.Add(Path.Combine(assimpDylibFilePath));
 
             // Ensure that the DLL is staged along with the executable
-            RuntimeDependencies.Add("$(BinaryOutputDir)", assimpDylibFilePath);
+            RuntimeDependencies.Add(assimpDylibFilePath);
         }
         else if (Target.Platform == UnrealTargetPlatform.Android)
         {

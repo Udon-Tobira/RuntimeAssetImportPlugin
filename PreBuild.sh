@@ -24,16 +24,48 @@ assureExecute() {
     fi
 }
 
+# Function to remove version numbers from dylib file name
+removeVersion() {
+    sed -E 's/\.[0-9]+//g'
+}
+
 # Main script
 (
-    # Change to the target directory
-    cd "$(dirname "$0")/Source/ThirdParty/assimp/assimp"
-
     # Ensure cmake command exists
     assureHasCommand cmake
+
+
+    ######### Make assimp #########
+
+    # Change to the target directory
+    cd "$(dirname "$0")/Source/ThirdParty/assimp/assimp"
 
     # Run cmake commands
     # assureExecute cmake -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF -DASSIMP_INSTALL=OFF  -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_BUILD_TYPE=Release CMakeLists.txt
     assureExecute cmake -DASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT=OFF -DASSIMP_INSTALL=OFF  -DCMAKE_OSX_ARCHITECTURES="arm64" -DCMAKE_BUILD_TYPE=Release CMakeLists.txt
     assureExecute cmake --build . --config Release
+
+    ######### change assimp alias dylib to real dylib ########
+
+    # Change to the library directory
+    cd bin
+
+    # for all *.dylib files in bin directory
+    for lib_name in *.dylib; do
+        lib_name_without_version=$(echo "$lib_name" | removeVersion)
+        # change install path to itself
+        install_name_tool -id "@rpath/$lib_name_without_version" "$lib_name"
+    done
+
+    # for all .*\.dylib or .*\..*\.dylib alias files in lib directory
+    for alias_file_relpath in $(find . -type l); do
+        # remove it
+        rm $alias_file_relpath
+    done
+
+    # for all real dylib files
+    for lib_name_with_version in *.dylib; do
+        # rename it to a name that doesn't include the version number
+        mv "$lib_name_with_version" "$(echo $lib_name_with_version | removeVersion)"
+    done
 )
